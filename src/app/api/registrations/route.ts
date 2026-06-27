@@ -4,16 +4,7 @@ import { registrations, users } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET() {
-  try {
-    // Return empty for now, auth will be added later
-    return NextResponse.json([]);
-  } catch (error) {
-    console.error('Error fetching registrations:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json([]);
 }
 
 export async function POST(request: Request) {
@@ -74,7 +65,7 @@ export async function POST(request: Request) {
       (nilaiRataRata * 0.6 + (body.certificatePoints || 0) * 0.4).toFixed(2)
     );
 
-    // Insert registration
+    // Insert registration with type assertion
     await db.insert(registrations).values({
       user_id: userId,
       nisn: body.nisn,
@@ -100,7 +91,7 @@ export async function POST(request: Request) {
       verification_status: 'pending',
       selection_status: 'pending',
       submitted_at: new Date(),
-    });
+    } as any);
 
     return NextResponse.json(
       {
