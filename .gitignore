@@ -56,3 +56,5 @@ drizzle/*.sql
 
 # OS
 Thumbs.db
+.vercel
+.env*

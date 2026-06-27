@@ -96,11 +96,13 @@ export default function RegisterPage() {
         addToast('error', 'No. telepon harus diisi');
         return false;
       }
-      if (!formData.gpa || parseFloat(formData.gpa) > 4 || parseFloat(formData.gpa) < 0) {\n        addToast('error', 'IPK harus antara 0-4');
+      if (!formData.gpa || parseFloat(formData.gpa) > 4 || parseFloat(formData.gpa) < 0) {
+        addToast('error', 'IPK harus antara 0-4');
         return false;
       }
     } else if (step === 'address') {
-      if (!formData.address.trim()) {\n        addToast('error', 'Alamat harus diisi');
+      if (!formData.address.trim()) {
+        addToast('error', 'Alamat harus diisi');
         return false;
       }
       if (!formData.city.trim()) {

@@ -36,9 +36,16 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { notificationId } = await request.json();
+    const body = await request.json();
+    const notificationId: number = body.notificationId;
 
-    // TODO: Mark notification as read
+    // Mark notification as read
+    if (notificationId) {
+      await db
+        .update(notifications)
+        .set({ is_read: true })
+        .where(eq(notifications.id, notificationId));
+    }
 
     return NextResponse.json({ message: 'Notification marked as read' });
   } catch (error) {

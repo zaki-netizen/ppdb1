@@ -12,12 +12,17 @@ export function Input({ as = 'input', className, options, ...props }: InputProps
   const base = 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
 
   if (as === 'textarea') {
-    return <textarea className={cn(base, className)} {...(props as any)} />
+    return (
+      <textarea
+        className={cn(base, 'min-h-[100px]', className)}
+        {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+      />
+    )
   }
 
   if (as === 'select') {
     return (
-      <select className={cn(base, className)} {...(props as any)}>
+      <select className={cn(base, className)} {...(props as React.SelectHTMLAttributes<HTMLSelectElement>)}>
         {options?.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}

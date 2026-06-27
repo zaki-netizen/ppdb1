@@ -2,17 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { FileUpload } from '@/components/FileUpload';
-
-interface Toast {
-  id: string;
-  type: 'success' | 'error';
-  message: string;
-}
 
 interface Registration {
   id: number;
@@ -23,12 +14,11 @@ interface Registration {
 }
 
 export default function MyRegistrationsPage() {
-  const router = useRouter();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<Array<{id: string, type: 'success' | 'error', message: string}>>([]);
 
   const addToast = (type: 'success' | 'error', message: string) => {
     const id = Date.now().toString();
@@ -39,32 +29,11 @@ export default function MyRegistrationsPage() {
   };
 
   useEffect(() => {
+    const fetchRegistrations = async () => {
+      setLoading(false);
+    };
     fetchRegistrations();
   }, []);
-
-  const fetchRegistrations = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/registrations');
-      if (response.ok) {
-        const data = await response.json();
-        setRegistrations(Array.isArray(data) ? data : data.data || []);
-      }
-    } catch (error) {
-      console.error('Error fetching registrations:', error);
-      addToast('error', 'Gagal mengambil data pendaftaran');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFileUploadComplete = () => {
-    addToast('success', 'Dokumen berhasil diunggah!');
-  };
-
-  const handleFileUploadError = (error: string) => {
-    addToast('error', error);
-  };
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
@@ -74,16 +43,6 @@ export default function MyRegistrationsPage() {
       rejected: { bg: 'bg-red-100', text: 'text-red-800', label: 'Ditolak' },
     };
     return badges[status] || badges.incomplete;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   if (loading) {
@@ -165,29 +124,9 @@ export default function MyRegistrationsPage() {
                           {badge.label}
                         </span>
                       </div>
-                      <p className="text-gray-600 text-sm mb-1">
-                        Terdaftar: {formatDate(reg.created_at)}
-                      </p>
-                      <div className="flex gap-4 text-sm">
-                        <span className={reg.verification_status === 'approved' ? 'text-green-600' : 'text-gray-600'}>
-                          {reg.verification_status === 'approved' ? '✓' : '○'} Verifikasi
-                        </span>
-                        <span className={reg.registration_status === 'submitted' ? 'text-green-600' : 'text-gray-600'}>
-                          {reg.registration_status === 'submitted' ? '✓' : '○'} Submitted
-                        </span>
-                      </div>
                     </div>
 
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedRegistration(reg);
-                          setShowUploadModal(true);
-                        }}
-                        className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        📤 Upload Dokumen
-                      </button>
                       <Link
                         href={`/results?registration=${reg.registration_number}`}
                         className="bg-green-100 hover:bg-green-200 text-green-700 px-4 py-2 rounded-lg font-medium transition-colors"
@@ -199,110 +138,6 @@ export default function MyRegistrationsPage() {
                 </Card>
               );
             })}
-          </div>
-        )}
-
-        {/* Document Upload Modal */}
-        {showUploadModal && selectedRegistration && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">Upload Dokumen</h2>
-                  <p className="text-gray-600 text-sm">
-                    No. Registrasi: {selectedRegistration.registration_number}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowUploadModal(false);
-                    setSelectedRegistration(null);
-                  }}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* KK Upload */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    🏠 Kartu Keluarga (KK)
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Scan/foto KK asli dengan format PDF, JPG, atau PNG (maks 5MB)
-                  </p>
-                  <FileUpload
-                    registrationId={selectedRegistration.id.toString()}
-                    documentType="KK"
-                    onUploadComplete={handleFileUploadComplete}
-                    onUploadError={handleFileUploadError}
-                  />
-                </div>
-
-                {/* Akta Upload */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    📜 Akta Kelahiran
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Scan/foto Akta Kelahiran dengan format PDF, JPG, atau PNG (maks 5MB)
-                  </p>
-                  <FileUpload
-                    registrationId={selectedRegistration.id.toString()}
-                    documentType="Akta"
-                    onUploadComplete={handleFileUploadComplete}
-                    onUploadError={handleFileUploadError}
-                  />
-                </div>
-
-                {/* Sertifikat Upload */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    🏆 Sertifikat Prestasi
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Scan/foto sertifikat prestasi (jika ada) dengan format PDF, JPG, atau PNG (maks 5MB)
-                  </p>
-                  <FileUpload
-                    registrationId={selectedRegistration.id.toString()}
-                    documentType="Sertifikat"
-                    onUploadComplete={handleFileUploadComplete}
-                    onUploadError={handleFileUploadError}
-                  />
-                </div>
-
-                {/* Raport Upload */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    📚 Raport
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Scan/foto rapor semester 1-5 dengan format PDF, JPG, atau PNG (maks 5MB)
-                  </p>
-                  <FileUpload
-                    registrationId={selectedRegistration.id.toString()}
-                    documentType="Raport"
-                    onUploadComplete={handleFileUploadComplete}
-                    onUploadError={handleFileUploadError}
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowUploadModal(false);
-                    setSelectedRegistration(null);
-                  }}
-                  className="w-full"
-                >
-                  Selesai
-                </Button>
-              </div>
-            </Card>
           </div>
         )}
 

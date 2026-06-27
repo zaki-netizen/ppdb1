@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { selection_results, registrations } from '@/drizzle/schema';
-import { eq, or, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {

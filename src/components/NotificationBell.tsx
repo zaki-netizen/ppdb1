@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Button } from './ui/button';
 
 export interface Notification {
   id: number;
@@ -19,11 +18,6 @@ interface NotificationBellProps {
   className?: string;
 }
 
-interface NotificationPanelProps {
-  className?: string;
-  maxHeight?: string;
-}
-
 interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead: (id: number) => void;
@@ -37,14 +31,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  useEffect(() => {
-    fetchNotifications();
-    // Poll every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const response = await fetch('/api/notifications?limit=20');
       if (response.ok) {
@@ -54,7 +41,14 @@ export function NotificationBell({ className }: NotificationBellProps) {
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
 
   const markAsRead = async (id: number) => {
     try {
@@ -254,23 +248,21 @@ export function NotificationList({ className }: NotificationListProps) {
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
   useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch('/api/notifications?limit=100');
+        if (response.ok) {
+          const data = await response.json();
+          setNotifications(data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchNotifications();
   }, []);
-
-  const fetchNotifications = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/notifications?limit=100');
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.data);
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const markAsRead = async (id: number) => {
     try {
@@ -322,9 +314,12 @@ export function NotificationList({ className }: NotificationListProps) {
           </p>
         </div>
         {unreadCount > 0 && (
-          <Button variant="outline" onClick={markAllAsRead}>
+          <button
+            onClick={markAllAsRead}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+          >
             Tandai semua dibaca
-          </Button>
+          </button>
         )}
       </div>
 
@@ -399,16 +394,6 @@ export function NotificationList({ className }: NotificationListProps) {
                     )}
                   </div>
                   <p className="text-gray-600 mt-1">{notification.message}</p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    {new Date(notification.sent_at).toLocaleDateString('id-ID', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
                 </div>
               </div>
             </div>

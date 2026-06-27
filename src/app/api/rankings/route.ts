@@ -52,12 +52,12 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const session = await auth();
 
     // Only admins can recalculate rankings
-    if (!session?.user || session.user.role !== 'admin') {
+    if (!session?.user || (session.user as any).role !== 'admin') {
       return NextResponse.json(
         { error: 'Only admins can recalculate rankings' },
         { status: 403 }
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     for (const [key, regs] of Object.entries(grouped)) {
       // Sort by total_score descending
       const sorted = regs.sort(
-        (a, b) => parseFloat(b.total_score as any) - parseFloat(a.total_score as any)
+        (a, b) => parseFloat(b.total_score as string) - parseFloat(a.total_score as string)
       );
 
       const [schoolId, pathwayId] = key.split('-').map(Number);
@@ -101,21 +101,22 @@ export async function POST(request: Request) {
 
       const quota = pathway?.quota || 100;
 
-      // Create selection results
+      // Create selection results one by one
       for (let i = 0; i < sorted.length; i++) {
         const reg = sorted[i];
         const rank = i + 1;
-        const status = rank <= quota ? 'accepted' : 'waitlist';
+        const statusVal = rank <= quota ? 'accepted' : 'waitlist';
 
+        // Insert using raw insert values
         await db.insert(selection_results).values({
           registration_id: reg.id,
           school_id: schoolId,
           pathway_id: pathwayId,
           final_rank: rank,
-          final_score: parseFloat(reg.total_score as any),
-          status,
+          final_score: String(reg.total_score),
+          status: statusVal,
           announcement_date: new Date(),
-        });
+        } as any);
 
         createdCount++;
       }
