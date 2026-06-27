@@ -1,0 +1,56 @@
+{
+  "version": "1.0.0",
+  "name": "ppdb-portal",
+  "description": "MCP Configuration for PPDB Portal Development with Vercel & GitHub",
+  "mcpServers": {
+    "vercel": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-vercel"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"]
+    }
+  },
+  "resources": [
+    {
+      "uri": "postgres://localhost:5432/ppdb_db",
+      "name": "ppdb_database_local",
+      "description": "PostgreSQL Database for PPDB (Local Development)"
+    }
+  ],
+  "tools": {
+    "vercel": {
+      "description": "Deploy and manage Vercel projects",
+      "enabled": true
+    },
+    "github": {
+      "description": "GitHub operations (PRs, issues, repos)",
+      "enabled": true
+    }
+  },
+  "environment": {
+    "NODE_ENV": "development",
+    "DATABASE_URL": "${DATABASE_URL}",
+    "NEXTAUTH_SECRET": "${NEXTAUTH_SECRET}",
+    "NEXTAUTH_URL": "http://localhost:3000"
+  },
+  "deployment": {
+    "provider": "vercel",
+    "projectName": "ppdb-portal",
+    "framework": "nextjs",
+    "region": "singapore"
+  },
+  "settings": {
+    "autoMigrate": false,
+    "verboseLogging": true,
+    "schemaPath": "./drizzle/schema.ts"
+  },
+  "servers": {
+    "paper": {
+      "type": "http",
+      "url": "http://127.0.0.1:29979/mcp",
+      "description": "Local Paper MCP server"
+    }
+  }
+}

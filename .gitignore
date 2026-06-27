@@ -1,0 +1,58 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Next.js
+.next/
+out/
+
+# Production
+build/
+dist/
+
+# Misc
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables - IMPORTANT
+.env
+.env.local
+.env.example
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode-test
+*.sw?
+*~
+
+# Database
+*.db
+*.sqlite
+migrations/
+drizzle/*.sql
+
+# IDE
+.fleet
+
+# OS
+Thumbs.db
