@@ -4,8 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 interface Toast {
   id: string;
@@ -34,13 +32,11 @@ export default function RegisterPage() {
     city: '',
     province: '',
     zipcode: '',
-    latitude: '',
-    longitude: '',
 
     // School
     preferredSchool: '',
     pathway: '',
-    gpa: '',
+    nilaiRataRata: '',
 
     // Parent
     parentName: '',
@@ -49,19 +45,14 @@ export default function RegisterPage() {
 
   const addToast = (type: 'success' | 'error', message: string) => {
     const id = Date.now().toString();
-    const newToast: Toast = { id, type, message };
-    setToasts((prev) => [...prev, newToast]);
-
-    // Auto-remove after 5 seconds
+    setToasts((prev) => [...prev, { id, type, message }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 5000);
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -96,8 +87,10 @@ export default function RegisterPage() {
         addToast('error', 'No. telepon harus diisi');
         return false;
       }
-      if (!formData.gpa || parseFloat(formData.gpa) > 4 || parseFloat(formData.gpa) < 0) {
-        addToast('error', 'IPK harus antara 0-4');
+      // Nilai rata-rata ijazah validation (0-100)
+      const nilai = parseFloat(formData.nilaiRataRata);
+      if (!formData.nilaiRataRata || isNaN(nilai) || nilai < 0 || nilai > 100) {
+        addToast('error', 'Nilai rata-rata ijazah harus antara 0-100');
         return false;
       }
     } else if (step === 'address') {
@@ -172,13 +165,11 @@ export default function RegisterPage() {
           gender: formData.gender,
           email: formData.email,
           phone: formData.phone,
-          gpa: formData.gpa,
+          nilaiRataRata: formData.nilaiRataRata,
           address: formData.address,
           city: formData.city,
           province: formData.province,
           zipcode: formData.zipcode,
-          latitude: formData.latitude,
-          longitude: formData.longitude,
           preferredSchool: formData.preferredSchool,
           pathway: formData.pathway,
           parentName: formData.parentName,
@@ -195,9 +186,9 @@ export default function RegisterPage() {
         return;
       }
 
-      addToast('success', 'Pendaftaran berhasil dibuat!');
-      
-      // Redirect to results page or dashboard after 2 seconds
+      addToast('success', 'Pendaftaran berhasil! No. Registrasi: ' + data.registrationNumber);
+
+      // Redirect to results page after 2 seconds
       setTimeout(() => {
         router.push('/results');
       }, 2000);
@@ -214,6 +205,15 @@ export default function RegisterPage() {
     school: 75,
     review: 100,
   }[step];
+
+  const getPathwayLabel = (value: string) => {
+    const labels: Record<string, string> = {
+      prestasi: 'Jalur Prestasi',
+      zonasi: 'Jalur Zonasi',
+      afirmasi: 'Jalur Afirmasi',
+    };
+    return labels[value] || value;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
@@ -240,9 +240,11 @@ export default function RegisterPage() {
             <span className="text-2xl font-bold">PP</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Pendaftaran PPDB
+            Pendaftaran PPDB 2026
           </h1>
-          <p className="text-gray-600">Langkah {['personal', 'address', 'school', 'review'].indexOf(step) + 1} dari 4</p>
+          <p className="text-gray-600">
+            Langkah {['personal', 'address', 'school', 'review'].indexOf(step) + 1} dari 4
+          </p>
         </div>
 
         {/* Progress Bar */}
@@ -251,7 +253,7 @@ export default function RegisterPage() {
             <div
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${progressPercentage}%` }}
-            ></div>
+            />
           </div>
           <p className="text-sm text-gray-600 mt-2">{progressPercentage}% Selesai</p>
         </div>
@@ -269,7 +271,7 @@ export default function RegisterPage() {
                     <label className="block text-sm font-medium mb-2">
                       NISN *
                     </label>
-                    <Input
+                    <input
                       type="text"
                       name="nisn"
                       placeholder="16 digit NISN"
@@ -277,19 +279,21 @@ export default function RegisterPage() {
                       onChange={handleInputChange}
                       maxLength={16}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       Nama Lengkap *
                     </label>
-                    <Input
+                    <input
                       type="text"
                       name="fullName"
-                      placeholder="Nama lengkap"
+                      placeholder="Nama lengkap sesuai ijazah"
                       value={formData.fullName}
                       onChange={handleInputChange}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -299,12 +303,13 @@ export default function RegisterPage() {
                     <label className="block text-sm font-medium mb-2">
                       Tanggal Lahir *
                     </label>
-                    <Input
+                    <input
                       type="date"
                       name="dateOfBirth"
                       value={formData.dateOfBirth}
                       onChange={handleInputChange}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
@@ -325,19 +330,21 @@ export default function RegisterPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      IPK *
+                      Nilai Rata-rata Ijazah *
                     </label>
-                    <Input
+                    <input
                       type="number"
-                      name="gpa"
-                      placeholder="3.50"
+                      name="nilaiRataRata"
+                      placeholder="0-100"
                       step="0.01"
                       min="0"
-                      max="4"
-                      value={formData.gpa}
+                      max="100"
+                      value={formData.nilaiRataRata}
                       onChange={handleInputChange}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Nilai dari 0 - 100</p>
                   </div>
                 </div>
 
@@ -346,26 +353,28 @@ export default function RegisterPage() {
                     <label className="block text-sm font-medium mb-2">
                       Email *
                     </label>
-                    <Input
+                    <input
                       type="email"
                       name="email"
-                      placeholder="your@email.com"
+                      placeholder="email@contoh.com"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       No. Telepon *
                     </label>
-                    <Input
+                    <input
                       type="tel"
                       name="phone"
-                      placeholder="08123456789"
+                      placeholder="08xxxxxxxxxx"
                       value={formData.phone}
                       onChange={handleInputChange}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
@@ -381,66 +390,59 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium mb-2">
                     Alamat Lengkap *
                   </label>
-                  <Input
-                    as="textarea"
+                  <textarea
                     name="address"
-                    placeholder="Jalan, no rumah, RT/RW"
+                    placeholder="Jalan, no rumah, RT/RW, Kelurahan, Kecamatan"
                     value={formData.address}
                     onChange={handleInputChange}
                     rows={3}
                     required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      Kota *
+                      Kota/Kabupaten *
                     </label>
-                    <Input
+                    <input
                       type="text"
                       name="city"
-                      placeholder="Jakarta"
+                      placeholder="Jakarta Selatan"
                       value={formData.city}
                       onChange={handleInputChange}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       Provinsi *
                     </label>
-                    <Input
+                    <input
                       type="text"
                       name="province"
                       placeholder="DKI Jakarta"
                       value={formData.province}
                       onChange={handleInputChange}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">
                       Kode Pos *
                     </label>
-                    <Input
+                    <input
                       type="text"
                       name="zipcode"
                       placeholder="12345"
                       value={formData.zipcode}
                       onChange={handleInputChange}
                       required
+                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-900 mb-4">
-                    📍 Arahkan lokasi rumah dengan peta
-                  </p>
-                  {/* Map will be integrated here */}
-                  <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
-                    <p className="text-gray-500">Peta akan ditampilkan di sini</p>
                   </div>
                 </div>
               </div>
@@ -455,19 +457,18 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium mb-2">
                     Sekolah Tujuan *
                   </label>
-                  <Input
-                    as="select"
+                  <select
                     name="preferredSchool"
                     value={formData.preferredSchool}
                     onChange={handleInputChange}
                     required
-                    options={[
-                      { value: '', label: '-- Pilih Sekolah --' },
-                      { value: '1', label: 'SMA Negeri 1 Jakarta' },
-                      { value: '2', label: 'SMA Negeri 2 Bandung' },
-                      { value: '3', label: 'SMA Negeri 3 Surabaya' },
-                    ]}
-                  />
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">-- Pilih Sekolah --</option>
+                    <option value="1">SMA Negeri 1 Jakarta</option>
+                    <option value="2">SMA Negeri 2 Bandung</option>
+                    <option value="3">SMA Negeri 3 Surabaya</option>
+                  </select>
                 </div>
 
                 <div>
@@ -476,11 +477,14 @@ export default function RegisterPage() {
                   </label>
                   <div className="space-y-3">
                     {[
-                      { value: 'prestasi', label: 'Jalur Prestasi (GPA ≥ 3.0)' },
-                      { value: 'zonasi', label: 'Jalur Zonasi (Radius 5 km)' },
-                      { value: 'afirmasi', label: 'Jalur Afirmasi' },
+                      { value: '1', label: 'Jalur Prestasi (Nilai ≥ 80.00)' },
+                      { value: '2', label: 'Jalur Zonasi (Radius 5 km)' },
+                      { value: '3', label: 'Jalur Afirmasi' },
                     ].map((option) => (
-                      <label key={option.value} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-blue-50">
+                      <label
+                        key={option.value}
+                        className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-blue-50"
+                      >
                         <input
                           type="radio"
                           name="pathway"
@@ -499,13 +503,14 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium mb-2">
                     Nama Orang Tua/Wali *
                   </label>
-                  <Input
+                  <input
                     type="text"
                     name="parentName"
-                    placeholder="Nama lengkap"
+                    placeholder="Nama lengkap orang tua/wali"
                     value={formData.parentName}
                     onChange={handleInputChange}
                     required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
@@ -513,13 +518,14 @@ export default function RegisterPage() {
                   <label className="block text-sm font-medium mb-2">
                     No. Telepon Orang Tua/Wali *
                   </label>
-                  <Input
+                  <input
                     type="tel"
                     name="parentPhone"
-                    placeholder="08123456789"
+                    placeholder="08xxxxxxxxxx"
                     value={formData.parentPhone}
                     onChange={handleInputChange}
                     required
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -530,24 +536,28 @@ export default function RegisterPage() {
               <div className="space-y-6">
                 <h2 className="text-xl font-bold mb-6">Verifikasi Data</h2>
 
-                <div className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-1">NISN</p>
-                      <p className="font-semibold text-gray-900">{formData.nisn}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-1">Nama</p>
-                      <p className="font-semibold text-gray-900">{formData.fullName}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-1">IPK</p>
-                      <p className="font-semibold text-gray-900">{formData.gpa}</p>
-                    </div>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-1">Jalur</p>
-                      <p className="font-semibold text-gray-900 capitalize">{formData.pathway}</p>
-                    </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">NISN</p>
+                    <p className="font-semibold text-gray-900">{formData.nisn}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Nama</p>
+                    <p className="font-semibold text-gray-900">{formData.fullName}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Nilai Rata-rata Ijazah</p>
+                    <p className="font-semibold text-gray-900">{formData.nilaiRataRata}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-xs text-gray-600 mb-1">Jalur</p>
+                    <p className="font-semibold text-gray-900">
+                      {formData.pathway === '1' ? 'Jalur Prestasi' : formData.pathway === '2' ? 'Jalur Zonasi' : 'Jalur Afirmasi'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg col-span-2">
+                    <p className="text-xs text-gray-600 mb-1">Alamat</p>
+                    <p className="font-semibold text-gray-900">{formData.address}, {formData.city}, {formData.province} {formData.zipcode}</p>
                   </div>
                 </div>
 
@@ -557,15 +567,15 @@ export default function RegisterPage() {
                   </p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex items-start gap-3">
                   <input
                     type="checkbox"
                     id="agree"
                     required
-                    className="rounded"
+                    className="mt-1 rounded"
                   />
                   <label htmlFor="agree" className="text-sm text-gray-700">
-                    Saya telah membaca dan setuju dengan syarat & ketentuan pendaftaran
+                    Saya telah membaca dan setuju dengan syarat & ketentuan pendaftaran PPDB 2026
                   </label>
                 </div>
               </div>
@@ -574,26 +584,26 @@ export default function RegisterPage() {
             {/* Navigation Buttons */}
             <div className="flex gap-4 pt-6 border-t">
               {step !== 'personal' && (
-                <Button
+                <button
                   type="button"
                   onClick={handleBack}
                   disabled={loading}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 py-3 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed"
                 >
                   ← Kembali
-                </Button>
+                </button>
               )}
               {step !== 'review' ? (
-                <Button
+                <button
                   type="button"
                   onClick={handleNext}
                   disabled={loading}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed"
                 >
                   Lanjut →
-                </Button>
+                </button>
               ) : (
-                <Button
+                <button
                   type="submit"
                   disabled={loading}
                   className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white py-3 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -606,7 +616,7 @@ export default function RegisterPage() {
                   ) : (
                     <>✓ Kirim Pendaftaran</>
                   )}
-                </Button>
+                </button>
               )}
             </div>
           </form>

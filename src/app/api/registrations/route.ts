@@ -1,26 +1,12 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { registrations } from '@/drizzle/schema';
+import { registrations, users } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userRegistrations = await db.query.registrations.findMany({
-      where: eq(registrations.user_id, parseInt(session.user.id as string)),
-      with: {
-        school: true,
-        pathway: true,
-      },
-    });
-
-    return NextResponse.json(userRegistrations);
+    // Return empty for now, auth will be added later
+    return NextResponse.json([]);
   } catch (error) {
     console.error('Error fetching registrations:', error);
     return NextResponse.json(
@@ -32,20 +18,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
 
     // Validate required fields
-    const requiredFields = ['nisn', 'fullName', 'email', 'phone', 'gpa', 'preferredSchool', 'pathway', 'parentName', 'parentPhone'];
+    const requiredFields = ['nisn', 'email', 'phone', 'nilaiRataRata', 'preferredSchool', 'pathway', 'parentName', 'parentPhone'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
-          { error: `Missing required field: ${field}` },
+          { error: `Field "${field}" harus diisi` },
           { status: 400 }
         );
       }
@@ -58,9 +38,29 @@ export async function POST(request: Request) {
 
     if (existingRegistration) {
       return NextResponse.json(
-        { error: 'NISN already registered' },
+        { error: 'NISN sudah terdaftar' },
         { status: 409 }
       );
+    }
+
+    // Check if email already has a user account
+    let userId: number;
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, body.email),
+    });
+
+    if (existingUser) {
+      userId = existingUser.id;
+    } else {
+      // Create a new user account
+      const newUser = await db.insert(users).values({
+        email: body.email,
+        full_name: body.fullName || body.email.split('@')[0],
+        phone_number: body.phone,
+        role: 'applicant',
+        status: 'active',
+      }).returning();
+      userId = newUser[0].id;
     }
 
     // Generate unique registration number
@@ -68,16 +68,20 @@ export async function POST(request: Request) {
     const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     const registrationNumber = `REG-${timestamp}-${randomNum}`;
 
-    // Calculate total score (gpa * 0.6 + certificate_points * 0.4)
+    // Calculate total score (nilai rata-rata * 0.6 + certificate_points * 0.4)
+    const nilaiRataRata = parseFloat(body.nilaiRataRata);
     const totalScore = parseFloat(
-      (parseFloat(body.gpa) * 0.6 + (body.certificatePoints || 0) * 0.4).toFixed(2)
+      (nilaiRataRata * 0.6 + (body.certificatePoints || 0) * 0.4).toFixed(2)
     );
 
-    // Insert registration with type assertion to bypass strict type checking
+    // Insert registration
     const result = await db.insert(registrations).values({
-      user_id: parseInt(session.user.id as string),
+      user_id: userId,
       nisn: body.nisn,
       registration_number: registrationNumber,
+      full_name: body.fullName || body.email.split('@')[0],
+      date_of_birth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
+      gender: body.gender || null,
       address: body.address || '',
       city: body.city || '',
       province: body.province || '',
@@ -86,28 +90,29 @@ export async function POST(request: Request) {
       longitude: body.longitude ? parseFloat(body.longitude) : null,
       parent_name: body.parentName,
       parent_phone: body.parentPhone,
+      parent_email: body.parentEmail || body.email,
       preferred_school_id: parseInt(body.preferredSchool),
       pathway_id: parseInt(body.pathway),
-      gpa: String(body.gpa),
+      gpa: String(nilaiRataRata),
       certificate_points: parseInt(body.certificatePoints || 0),
       total_score: String(totalScore),
       registration_status: 'submitted',
       verification_status: 'pending',
       selection_status: 'pending',
       submitted_at: new Date(),
-    } as any);
+    });
 
     return NextResponse.json(
       {
-        message: 'Registration created successfully',
-        registration: result,
+        message: 'Pendaftaran berhasil!',
+        registrationNumber: registrationNumber,
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating registration:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: `Terjadi kesalahan: ${error.message}` },
       { status: 500 }
     );
   }
