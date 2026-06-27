@@ -206,15 +206,6 @@ export default function RegisterPage() {
     review: 100,
   }[step];
 
-  const getPathwayLabel = (value: string) => {
-    const labels: Record<string, string> = {
-      prestasi: 'Jalur Prestasi',
-      zonasi: 'Jalur Zonasi',
-      afirmasi: 'Jalur Afirmasi',
-    };
-    return labels[value] || value;
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       {/* Toast Notifications */}
