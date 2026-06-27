@@ -95,6 +95,9 @@ export default function RegisterPage() {
     // Parent
     parentName: '',
     parentPhone: '',
+
+    // City for school filtering
+    city: '',
   });
 
   // Get schools for selected region
