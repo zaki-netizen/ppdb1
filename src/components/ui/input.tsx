@@ -8,21 +8,34 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   options?: Option[]
 }
 
-export function Input({ as = 'input', className, options, ...props }: InputProps) {
+interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  as: 'textarea'
+}
+
+interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  as: 'select'
+  options?: Option[]
+}
+
+type CombinedProps = InputProps | TextareaProps | SelectProps;
+
+export function Input({ as = 'input', className, options, ...props }: CombinedProps) {
   const base = 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
 
   if (as === 'textarea') {
+    const textareaProps = props as React.TextareaHTMLAttributes<HTMLTextAreaElement>
     return (
       <textarea
         className={cn(base, 'min-h-[100px]', className)}
-        {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+        {...textareaProps}
       />
     )
   }
 
   if (as === 'select') {
+    const selectProps = props as React.SelectHTMLAttributes<HTMLSelectElement>
     return (
-      <select className={cn(base, className)} {...(props as React.SelectHTMLAttributes<HTMLSelectElement>)}>
+      <select className={cn(base, className)} {...selectProps}>
         {options?.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -32,7 +45,7 @@ export function Input({ as = 'input', className, options, ...props }: InputProps
     )
   }
 
-  return <input className={cn(base, className)} {...props} />
+  return <input className={cn(base, className)} {...(props as React.InputHTMLAttributes<HTMLInputElement>)} />
 }
 
 export default Input
