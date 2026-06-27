@@ -81,16 +81,6 @@ export function NotificationBell({ className }: NotificationBellProps) {
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      schedule: '📅',
-      result: '🎓',
-      document: '📄',
-      system: '🔔',
-    };
-    return icons[type] || '🔔';
-  };
-
   return (
     <div className={cn('relative', className)}>
       {/* Bell Button */}
