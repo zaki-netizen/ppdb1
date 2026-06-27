@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     );
 
     // Insert registration
-    const result = await db.insert(registrations).values({
+    await db.insert(registrations).values({
       user_id: userId,
       nisn: body.nisn,
       registration_number: registrationNumber,
