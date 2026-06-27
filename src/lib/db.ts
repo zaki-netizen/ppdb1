@@ -4,11 +4,11 @@ import * as schema from '@/drizzle/schema';
 
 const connectionString = process.env.DATABASE_URL;
 
-if (!connectionString) {
-  throw new Error('DATABASE_URL is not defined');
-}
+// Create a placeholder client for build time
+const client = connectionString
+  ? postgres(connectionString)
+  : postgres('postgresql://placeholder:placeholder@placeholder:5432/placeholder');
 
-export const client = postgres(connectionString);
 export const db = drizzle(client, { schema });
 
 export type Database = typeof db;
