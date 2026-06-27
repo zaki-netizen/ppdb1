@@ -24,10 +24,15 @@
       "Bash(npm search *)",
       "Bash(npx drizzle-kit *)",
       "Bash(npx ts-node *)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(node -e ' *)",
+      "Bash(node check-users.js)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\muham\\\\OneDrive\\\\ドキュメント\\\\ppdb1\\\\src\\\\app\\\\api\\\\auth\\\\[...nextauth]\" 2>&1)",
+      "Bash(rm -f check-users.js)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\muham\\OneDrive\\ドキュメント\\ppdb1\\src\\components"
+      "C:\\Users\\muham\\OneDrive\\ドキュメント\\ppdb1\\src\\components",
+      "C:\\Users\\muham\\OneDrive\\ドキュメント\\ppdb1\\src\\app\\api\\auth"
     ]
   }
 }
