@@ -57,15 +57,19 @@ export async function POST(request: Request) {
     // Generate unique registration number
     const timestamp = Date.now().toString().slice(-6);
     const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    const registrationNumber = `REG-${timestamp}-${randomNum}`;
+    const registrationNumber = `REG-2026-${timestamp}-${randomNum}`;
 
-    // Calculate total score (nilai rata-rata * 0.6 + certificate_points * 0.4)
+    // Parse nilai rata-rata (0-100 scale)
     const nilaiRataRata = parseFloat(body.nilaiRataRata);
-    const totalScore = parseFloat(
-      (nilaiRataRata * 0.6 + (body.certificatePoints || 0) * 0.4).toFixed(2)
-    );
 
-    // Insert registration with type assertion
+    // Convert nilai to decimal scale (0-10) for storage
+    const gpaValue = (nilaiRataRata / 10).toFixed(2);
+
+    // Calculate total score (gpa * 0.6 + certificate_points * 0.4)
+    const certificatePoints = parseInt(body.certificatePoints || '0');
+    const totalScore = ((nilaiRataRata * 0.6 + certificatePoints * 0.4) / 10).toFixed(2);
+
+    // Insert registration
     await db.insert(registrations).values({
       user_id: userId,
       nisn: body.nisn,
@@ -73,20 +77,17 @@ export async function POST(request: Request) {
       full_name: body.fullName || body.email.split('@')[0],
       date_of_birth: body.dateOfBirth ? new Date(body.dateOfBirth) : null,
       gender: body.gender || null,
-      address: body.address || '',
-      city: body.city || '',
-      province: body.province || '',
-      zipcode: body.zipcode || '',
-      latitude: body.latitude ? parseFloat(body.latitude) : null,
-      longitude: body.longitude ? parseFloat(body.longitude) : null,
+      address: '',
+      city: '',
+      province: '',
+      zipcode: '',
       parent_name: body.parentName,
       parent_phone: body.parentPhone,
-      parent_email: body.parentEmail || body.email,
       preferred_school_id: parseInt(body.preferredSchool),
       pathway_id: parseInt(body.pathway),
-      gpa: String(nilaiRataRata),
-      certificate_points: parseInt(body.certificatePoints || 0),
-      total_score: String(totalScore),
+      gpa: gpaValue,
+      certificate_points: certificatePoints,
+      total_score: totalScore,
       registration_status: 'submitted',
       verification_status: 'pending',
       selection_status: 'pending',

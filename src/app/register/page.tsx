@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
@@ -11,9 +11,69 @@ interface Toast {
   message: string;
 }
 
+// Schools grouped by region
+const SCHOOLS_BY_REGION: Record<string, { id: string; name: string }[]> = {
+  'Jakarta': [
+    { id: '1', name: 'SMA Negeri 1 Jakarta' },
+    { id: '2', name: 'SMA Negeri 2 Jakarta' },
+    { id: '3', name: 'SMA Negeri 3 Jakarta' },
+    { id: '4', name: 'SMA Negeri 4 Jakarta' },
+    { id: '5', name: 'SMA Negeri 5 Jakarta' },
+  ],
+  'Bandung': [
+    { id: '6', name: 'SMA Negeri 1 Bandung' },
+    { id: '7', name: 'SMA Negeri 2 Bandung' },
+    { id: '8', name: 'SMA Negeri 3 Bandung' },
+    { id: '9', name: 'SMA Negeri 4 Bandung' },
+  ],
+  'Surabaya': [
+    { id: '10', name: 'SMA Negeri 1 Surabaya' },
+    { id: '11', name: 'SMA Negeri 2 Surabaya' },
+    { id: '12', name: 'SMA Negeri 3 Surabaya' },
+    { id: '13', name: 'SMA Negeri 4 Surabaya' },
+  ],
+  'Bekasi': [
+    { id: '14', name: 'SMA Negeri 1 Bekasi' },
+    { id: '15', name: 'SMA Negeri 2 Bekasi' },
+    { id: '16', name: 'SMA Negeri 3 Bekasi' },
+  ],
+  'Depok': [
+    { id: '17', name: 'SMA Negeri 1 Depok' },
+    { id: '18', name: 'SMA Negeri 2 Depok' },
+  ],
+  'Tangerang': [
+    { id: '19', name: 'SMA Negeri 1 Tangerang' },
+    { id: '20', name: 'SMA Negeri 2 Tangerang' },
+  ],
+  'Yogyakarta': [
+    { id: '21', name: 'SMA Negeri 1 Yogyakarta' },
+    { id: '22', name: 'SMA Negeri 2 Yogyakarta' },
+  ],
+  'Semarang': [
+    { id: '23', name: 'SMA Negeri 1 Semarang' },
+    { id: '24', name: 'SMA Negeri 2 Semarang' },
+  ],
+  'Malang': [
+    { id: '25', name: 'SMA Negeri 1 Malang' },
+    { id: '26', name: 'SMA Negeri 2 Malang' },
+  ],
+};
+
+// Pathway IDs (prestasi=1, zonasi=2, afirmasi=3 in each school group)
+// School 1-5 (Jakarta): pathways 1-15
+// School 6-9 (Bandung): pathways 16-27
+// etc.
+const getPathwayId = (schoolId: number, pathwayType: string): number => {
+  const schoolIndex = Math.ceil(schoolId / 3);
+  const basePathwayId = (schoolIndex - 1) * 3;
+  if (pathwayType === 'prestasi') return basePathwayId + 1;
+  if (pathwayType === 'zonasi') return basePathwayId + 2;
+  return basePathwayId + 3;
+};
+
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'personal' | 'address' | 'school' | 'review'>(
+  const [step, setStep] = useState<'personal' | 'school' | 'parent' | 'review'>(
     'personal'
   );
   const [loading, setLoading] = useState(false);
@@ -27,12 +87,6 @@ export default function RegisterPage() {
     email: '',
     phone: '',
 
-    // Address
-    address: '',
-    city: '',
-    province: '',
-    zipcode: '',
-
     // School
     preferredSchool: '',
     pathway: '',
@@ -42,6 +96,19 @@ export default function RegisterPage() {
     parentName: '',
     parentPhone: '',
   });
+
+  // Get schools for selected region
+  const getSchoolsForCity = (): { id: string; name: string }[] => {
+    const city = formData.city?.toLowerCase() || '';
+
+    for (const [region, schools] of Object.entries(SCHOOLS_BY_REGION)) {
+      if (city.includes(region.toLowerCase())) {
+        return schools;
+      }
+    }
+    // Return all schools if no match
+    return Object.values(SCHOOLS_BY_REGION).flat();
+  };
 
   const addToast = (type: 'success' | 'error', message: string) => {
     const id = Date.now().toString();
@@ -58,6 +125,8 @@ export default function RegisterPage() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      // Reset school selection when city changes
+      ...(name === 'city' ? { preferredSchool: '', pathway: '' } : {}),
     }));
   };
 
@@ -87,27 +156,9 @@ export default function RegisterPage() {
         addToast('error', 'No. telepon harus diisi');
         return false;
       }
-      // Nilai rata-rata ijazah validation (0-100)
       const nilai = parseFloat(formData.nilaiRataRata);
       if (!formData.nilaiRataRata || isNaN(nilai) || nilai < 0 || nilai > 100) {
         addToast('error', 'Nilai rata-rata ijazah harus antara 0-100');
-        return false;
-      }
-    } else if (step === 'address') {
-      if (!formData.address.trim()) {
-        addToast('error', 'Alamat harus diisi');
-        return false;
-      }
-      if (!formData.city.trim()) {
-        addToast('error', 'Kota harus diisi');
-        return false;
-      }
-      if (!formData.province.trim()) {
-        addToast('error', 'Provinsi harus diisi');
-        return false;
-      }
-      if (!formData.zipcode) {
-        addToast('error', 'Kode pos harus diisi');
         return false;
       }
     } else if (step === 'school') {
@@ -119,6 +170,7 @@ export default function RegisterPage() {
         addToast('error', 'Jalur pendaftaran harus dipilih');
         return false;
       }
+    } else if (step === 'parent') {
       if (!formData.parentName.trim()) {
         addToast('error', 'Nama orang tua harus diisi');
         return false;
@@ -133,16 +185,16 @@ export default function RegisterPage() {
 
   const handleNext = () => {
     if (validateCurrentStep()) {
-      if (step === 'personal') setStep('address');
-      else if (step === 'address') setStep('school');
-      else if (step === 'school') setStep('review');
+      if (step === 'personal') setStep('school');
+      else if (step === 'school') setStep('parent');
+      else if (step === 'parent') setStep('review');
     }
   };
 
   const handleBack = () => {
-    if (step === 'address') setStep('personal');
-    else if (step === 'school') setStep('address');
-    else if (step === 'review') setStep('school');
+    if (step === 'school') setStep('personal');
+    else if (step === 'parent') setStep('school');
+    else if (step === 'review') setStep('parent');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -155,6 +207,10 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
+      // Get pathway ID based on school and pathway type
+      const schoolId = parseInt(formData.preferredSchool);
+      const pathwayId = getPathwayId(schoolId, formData.pathway);
+
       const response = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,12 +222,8 @@ export default function RegisterPage() {
           email: formData.email,
           phone: formData.phone,
           nilaiRataRata: formData.nilaiRataRata,
-          address: formData.address,
-          city: formData.city,
-          province: formData.province,
-          zipcode: formData.zipcode,
           preferredSchool: formData.preferredSchool,
-          pathway: formData.pathway,
+          pathway: pathwayId.toString(),
           parentName: formData.parentName,
           parentPhone: formData.parentPhone,
           certificatePoints: 0,
@@ -188,7 +240,6 @@ export default function RegisterPage() {
 
       addToast('success', 'Pendaftaran berhasil! No. Registrasi: ' + data.registrationNumber);
 
-      // Redirect to results page after 2 seconds
       setTimeout(() => {
         router.push('/results');
       }, 2000);
@@ -201,10 +252,12 @@ export default function RegisterPage() {
 
   const progressPercentage = {
     personal: 25,
-    address: 50,
-    school: 75,
+    school: 50,
+    parent: 75,
     review: 100,
   }[step];
+
+  const availableSchools = getSchoolsForCity();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
@@ -234,7 +287,7 @@ export default function RegisterPage() {
             Pendaftaran PPDB 2026
           </h1>
           <p className="text-gray-600">
-            Langkah {['personal', 'address', 'school', 'review'].indexOf(step) + 1} dari 4
+            Langkah {['personal', 'school', 'parent', 'review'].indexOf(step) + 1} dari 4
           </p>
         </div>
 
@@ -255,13 +308,11 @@ export default function RegisterPage() {
             {/* STEP 1: Personal Information */}
             {step === 'personal' && (
               <div className="space-y-4">
-                <h2 className="text-xl font-bold mb-6">Informasi Pribadi</h2>
+                <h2 className="text-xl font-bold mb-6">Data Pribadi</h2>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      NISN *
-                    </label>
+                    <label className="block text-sm font-medium mb-2">NISN *</label>
                     <input
                       type="text"
                       name="nisn"
@@ -274,13 +325,11 @@ export default function RegisterPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Nama Lengkap *
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Nama Lengkap *</label>
                     <input
                       type="text"
                       name="fullName"
-                      placeholder="Nama lengkap sesuai ijazah"
+                      placeholder="Nama sesuai ijazah"
                       value={formData.fullName}
                       onChange={handleInputChange}
                       required
@@ -291,9 +340,7 @@ export default function RegisterPage() {
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Tanggal Lahir *
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Tanggal Lahir *</label>
                     <input
                       type="date"
                       name="dateOfBirth"
@@ -304,9 +351,7 @@ export default function RegisterPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Jenis Kelamin *
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Jenis Kelamin *</label>
                     <select
                       name="gender"
                       value={formData.gender}
@@ -320,9 +365,7 @@ export default function RegisterPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Nilai Rata-rata Ijazah *
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Nilai Rata-rata Ijazah *</label>
                     <input
                       type="number"
                       name="nilaiRataRata"
@@ -335,15 +378,12 @@ export default function RegisterPage() {
                       required
                       className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Nilai dari 0 - 100</p>
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Email *
-                    </label>
+                    <label className="block text-sm font-medium mb-2">Email *</label>
                     <input
                       type="email"
                       name="email"
@@ -355,9 +395,7 @@ export default function RegisterPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">
-                      No. Telepon *
-                    </label>
+                    <label className="block text-sm font-medium mb-2">No. Telepon *</label>
                     <input
                       type="tel"
                       name="phone"
@@ -372,82 +410,13 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* STEP 2: Address Information */}
-            {step === 'address' && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold mb-6">Alamat Tempat Tinggal</h2>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Alamat Lengkap *
-                  </label>
-                  <textarea
-                    name="address"
-                    placeholder="Jalan, no rumah, RT/RW, Kelurahan, Kecamatan"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    rows={3}
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Kota/Kabupaten *
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      placeholder="Jakarta Selatan"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Provinsi *
-                    </label>
-                    <input
-                      type="text"
-                      name="province"
-                      placeholder="DKI Jakarta"
-                      value={formData.province}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Kode Pos *
-                    </label>
-                    <input
-                      type="text"
-                      name="zipcode"
-                      placeholder="12345"
-                      value={formData.zipcode}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: School Selection */}
+            {/* STEP 2: School Selection */}
             {step === 'school' && (
               <div className="space-y-4">
                 <h2 className="text-xl font-bold mb-6">Pilihan Sekolah</h2>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Sekolah Tujuan *
-                  </label>
+                  <label className="block text-sm font-medium mb-2">Sekolah Tujuan *</label>
                   <select
                     name="preferredSchool"
                     value={formData.preferredSchool}
@@ -456,21 +425,24 @@ export default function RegisterPage() {
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">-- Pilih Sekolah --</option>
-                    <option value="1">SMA Negeri 1 Jakarta</option>
-                    <option value="2">SMA Negeri 2 Bandung</option>
-                    <option value="3">SMA Negeri 3 Surabaya</option>
+                    {availableSchools.map((school) => (
+                      <option key={school.id} value={school.id}>
+                        {school.name}
+                      </option>
+                    ))}
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {availableSchools.length > 5 ? 'Schools available for your region' : 'All schools available'}
+                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-3">
-                    Jalur Pendaftaran *
-                  </label>
+                  <label className="block text-sm font-medium mb-3">Jalur Pendaftaran *</label>
                   <div className="space-y-3">
                     {[
-                      { value: '1', label: 'Jalur Prestasi (Nilai ≥ 80.00)' },
-                      { value: '2', label: 'Jalur Zonasi (Radius 5 km)' },
-                      { value: '3', label: 'Jalur Afirmasi' },
+                      { value: 'prestasi', label: 'Jalur Prestasi (Nilai ≥ 80.00)' },
+                      { value: 'zonasi', label: 'Jalur Zonasi' },
+                      { value: 'afirmasi', label: 'Jalur Afirmasi' },
                     ].map((option) => (
                       <label
                         key={option.value}
@@ -489,15 +461,20 @@ export default function RegisterPage() {
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* STEP 3: Parent Information */}
+            {step === 'parent' && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold mb-6">Data Orang Tua/Wali</h2>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Nama Orang Tua/Wali *
-                  </label>
+                  <label className="block text-sm font-medium mb-2">Nama Orang Tua/Wali *</label>
                   <input
                     type="text"
                     name="parentName"
-                    placeholder="Nama lengkap orang tua/wali"
+                    placeholder="Nama lengkap"
                     value={formData.parentName}
                     onChange={handleInputChange}
                     required
@@ -506,9 +483,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    No. Telepon Orang Tua/Wali *
-                  </label>
+                  <label className="block text-sm font-medium mb-2">No. Telepon Orang Tua/Wali *</label>
                   <input
                     type="tel"
                     name="parentPhone"
@@ -530,43 +505,38 @@ export default function RegisterPage() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">NISN</p>
-                    <p className="font-semibold text-gray-900">{formData.nisn}</p>
+                    <p className="font-semibold">{formData.nisn}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">Nama</p>
-                    <p className="font-semibold text-gray-900">{formData.fullName}</p>
+                    <p className="font-semibold">{formData.fullName}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">Nilai Rata-rata Ijazah</p>
-                    <p className="font-semibold text-gray-900">{formData.nilaiRataRata}</p>
+                    <p className="text-xs text-gray-600 mb-1">Nilai Rata-rata</p>
+                    <p className="font-semibold">{formData.nilaiRataRata}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">Jalur</p>
-                    <p className="font-semibold text-gray-900">
-                      {formData.pathway === '1' ? 'Jalur Prestasi' : formData.pathway === '2' ? 'Jalur Zonasi' : 'Jalur Afirmasi'}
-                    </p>
+                    <p className="font-semibold capitalize">{formData.pathway}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg col-span-2">
-                    <p className="text-xs text-gray-600 mb-1">Alamat</p>
-                    <p className="font-semibold text-gray-900">{formData.address}, {formData.city}, {formData.province} {formData.zipcode}</p>
+                    <p className="text-xs text-gray-600 mb-1">Sekolah</p>
+                    <p className="font-semibold">
+                      {availableSchools.find(s => s.id === formData.preferredSchool)?.name || formData.preferredSchool}
+                    </p>
                   </div>
                 </div>
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <p className="text-sm text-yellow-900">
-                    ⚠️ Pastikan semua data sudah benar sebelum mengirim. Data tidak bisa diubah setelah submit.
+                    ⚠️ Pastikan semua data sudah benar. Data tidak bisa diubah setelah submit.
                   </p>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="agree"
-                    required
-                    className="mt-1 rounded"
-                  />
+                  <input type="checkbox" id="agree" required className="mt-1" />
                   <label htmlFor="agree" className="text-sm text-gray-700">
-                    Saya telah membaca dan setuju dengan syarat & ketentuan pendaftaran PPDB 2026
+                    Saya menyatakan data yang diisi adalah benar dan sesuai dokumen asli
                   </label>
                 </div>
               </div>
@@ -579,7 +549,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={handleBack}
                   disabled={loading}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 py-3 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed"
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 py-3 rounded-lg font-semibold"
                 >
                   ← Kembali
                 </button>
@@ -589,7 +559,7 @@ export default function RegisterPage() {
                   type="button"
                   onClick={handleNext}
                   disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg font-semibold"
                 >
                   Lanjut →
                 </button>
@@ -597,7 +567,7 @@ export default function RegisterPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white py-3 rounded-lg font-semibold transition-colors disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
