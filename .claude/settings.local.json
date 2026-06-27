@@ -18,7 +18,13 @@
       "Bash(vercel --prod)",
       "Bash(npm run *)",
       "Bash(npx tsc *)",
-      "Bash(vercel --prod --yes)"
+      "Bash(vercel --prod --yes)",
+      "Bash(gh auth *)",
+      "Bash(npm list *)",
+      "Bash(npm search *)",
+      "Bash(npx drizzle-kit *)",
+      "Bash(npx ts-node *)",
+      "Bash(npx tsx *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\muham\\OneDrive\\ドキュメント\\ppdb1\\src\\components"
