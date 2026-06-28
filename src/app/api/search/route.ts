@@ -6,35 +6,44 @@ import { eq } from 'drizzle-orm';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const nisn = searchParams.get('nisn');
-    const registrationNumber = searchParams.get('registrationNumber');
+    const q = searchParams.get('q');
+    const nisn = searchParams.get('nisn') || (q && !q.includes('REG-') ? q : null);
+    const registrationNumber = searchParams.get('registrationNumber') || (q && q.includes('REG-') ? q : null);
 
     if (!nisn && !registrationNumber) {
       return NextResponse.json(
-        { error: 'Either nisn or registrationNumber is required' },
+        { error: 'Parameter pencarian diperlukan (NISN atau No. Registrasi)' },
         { status: 400 }
       );
     }
 
     // Find registration by NISN or registration number
-    const registration = await db.query.registrations.findFirst({
-      where: nisn
-        ? eq(registrations.nisn, nisn)
-        : registrationNumber
-          ? eq(registrations.registration_number, registrationNumber)
-          : undefined,
-      with: {
-        user: true,
-        school: true,
-        pathway: true,
-      },
-    });
+    let registration = null;
+
+    if (nisn) {
+      registration = await db.query.registrations.findFirst({
+        where: eq(registrations.nisn, nisn),
+        with: {
+          user: true,
+          school: true,
+          pathway: true,
+        },
+      });
+    }
+
+    if (!registration && registrationNumber) {
+      registration = await db.query.registrations.findFirst({
+        where: eq(registrations.registration_number, registrationNumber),
+        with: {
+          user: true,
+          school: true,
+          pathway: true,
+        },
+      });
+    }
 
     if (!registration) {
-      return NextResponse.json(
-        { error: 'Registration not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ results: [] });
     }
 
     // Get selection result for this registration
@@ -46,23 +55,16 @@ export async function GET(request: Request) {
       },
     });
 
-    if (!result) {
-      // Registration exists but no selection result yet
-      return NextResponse.json({
-        registration,
-        result: null,
-        message: 'Hasil seleksi belum tersedia',
-      });
-    }
-
     return NextResponse.json({
-      registration,
-      result,
+      results: [{
+        ...registration,
+        selection_result: result,
+      }],
     });
   } catch (error) {
     console.error('Error searching results:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Terjadi kesalahan pada server' },
       { status: 500 }
     );
   }

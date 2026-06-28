@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  session: { strategy: 'jwt' },
   providers: [
     Credentials({
       credentials: {
@@ -14,38 +15,41 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          console.log('Missing credentials');
+          console.log('[AUTH] Missing credentials');
           return null;
         }
+        console.log('[AUTH] Login:', credentials.email);
 
         try {
           const user = await db.query.users.findFirst({
             where: eq(users.email, credentials.email as string),
           });
 
-          if (!user || !user.password_hash) {
-            console.log('User not found or no password');
+          if (!user) {
+            console.log('[AUTH] User not found:', credentials.email);
             return null;
           }
 
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password as string,
-            user.password_hash
-          );
-
-          if (!isPasswordValid) {
-            console.log('Invalid password');
+          if (!user.password_hash) {
+            console.log('[AUTH] No password hash:', credentials.email);
             return null;
           }
 
+          const isValid = await bcrypt.compare(credentials.password as string, user.password_hash);
+          if (!isValid) {
+            console.log('[AUTH] Invalid password:', credentials.email);
+            return null;
+          }
+
+          console.log('[AUTH] Success:', user.email);
           return {
-            id: user.id.toString(),
+            id: String(user.id),
             email: user.email,
             name: user.full_name,
             role: user.role,
           };
-        } catch (error) {
-          console.error('Auth error:', error);
+        } catch (e) {
+          console.error('[AUTH] Error:', e);
           return null;
         }
       },
@@ -53,20 +57,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   pages: {
     signIn: '/login',
-    error: '/auth/error',
   },
   callbacks: {
     async jwt({ token, user }) {
+      console.log('[JWT] user:', user?.email);
       if (user) {
-        token.role = (user as any).role;
-        token.id = user.id;
+        token.id = String(user.id);
+        token.email = user.email;
+        token.name = user.name;
+        (token as any).role = (user as any).role;
       }
       return token;
     },
     async session({ session, token }) {
+      console.log('[SESSION] token.email:', token.email);
       if (session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).id = token.id;
+        (session.user as any).id = token.id as string;
+        (session.user as any).role = (token as any).role;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        console.log('[SESSION] Done, email:', session.user.email);
       }
       return session;
     },

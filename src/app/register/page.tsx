@@ -17,52 +17,44 @@ const SCHOOLS_BY_REGION: Record<string, { id: string; name: string }[]> = {
     { id: '1', name: 'SMA Negeri 1 Jakarta' },
     { id: '2', name: 'SMA Negeri 2 Jakarta' },
     { id: '3', name: 'SMA Negeri 3 Jakarta' },
-    { id: '4', name: 'SMA Negeri 4 Jakarta' },
-    { id: '5', name: 'SMA Negeri 5 Jakarta' },
   ],
   'Bandung': [
-    { id: '6', name: 'SMA Negeri 1 Bandung' },
-    { id: '7', name: 'SMA Negeri 2 Bandung' },
-    { id: '8', name: 'SMA Negeri 3 Bandung' },
-    { id: '9', name: 'SMA Negeri 4 Bandung' },
+    { id: '4', name: 'SMA Negeri 1 Bandung' },
+    { id: '5', name: 'SMA Negeri 2 Bandung' },
+    { id: '6', name: 'SMA Negeri 3 Bandung' },
   ],
   'Surabaya': [
-    { id: '10', name: 'SMA Negeri 1 Surabaya' },
-    { id: '11', name: 'SMA Negeri 2 Surabaya' },
-    { id: '12', name: 'SMA Negeri 3 Surabaya' },
-    { id: '13', name: 'SMA Negeri 4 Surabaya' },
+    { id: '7', name: 'SMA Negeri 1 Surabaya' },
+    { id: '8', name: 'SMA Negeri 2 Surabaya' },
+    { id: '9', name: 'SMA Negeri 3 Surabaya' },
   ],
   'Bekasi': [
-    { id: '14', name: 'SMA Negeri 1 Bekasi' },
-    { id: '15', name: 'SMA Negeri 2 Bekasi' },
-    { id: '16', name: 'SMA Negeri 3 Bekasi' },
+    { id: '10', name: 'SMA Negeri 1 Bekasi' },
+    { id: '11', name: 'SMA Negeri 2 Bekasi' },
   ],
   'Depok': [
-    { id: '17', name: 'SMA Negeri 1 Depok' },
-    { id: '18', name: 'SMA Negeri 2 Depok' },
+    { id: '12', name: 'SMA Negeri 1 Depok' },
+    { id: '13', name: 'SMA Negeri 2 Depok' },
   ],
   'Tangerang': [
-    { id: '19', name: 'SMA Negeri 1 Tangerang' },
-    { id: '20', name: 'SMA Negeri 2 Tangerang' },
+    { id: '14', name: 'SMA Negeri 1 Tangerang' },
+    { id: '15', name: 'SMA Negeri 2 Tangerang' },
   ],
   'Yogyakarta': [
-    { id: '21', name: 'SMA Negeri 1 Yogyakarta' },
-    { id: '22', name: 'SMA Negeri 2 Yogyakarta' },
+    { id: '16', name: 'SMA Negeri 1 Yogyakarta' },
+    { id: '17', name: 'SMA Negeri 2 Yogyakarta' },
   ],
   'Semarang': [
-    { id: '23', name: 'SMA Negeri 1 Semarang' },
-    { id: '24', name: 'SMA Negeri 2 Semarang' },
+    { id: '18', name: 'SMA Negeri 1 Semarang' },
+    { id: '19', name: 'SMA Negeri 2 Semarang' },
   ],
   'Malang': [
-    { id: '25', name: 'SMA Negeri 1 Malang' },
-    { id: '26', name: 'SMA Negeri 2 Malang' },
+    { id: '20', name: 'SMA Negeri 1 Malang' },
+    { id: '21', name: 'SMA Negeri 2 Malang' },
   ],
 };
 
-// Pathway IDs (prestasi=1, zonasi=2, afirmasi=3 in each school group)
-// School 1-5 (Jakarta): pathways 1-15
-// School 6-9 (Bandung): pathways 16-27
-// etc.
+// Get pathway ID based on school index and pathway type
 const getPathwayId = (schoolId: number, pathwayType: string): number => {
   const schoolIndex = Math.ceil(schoolId / 3);
   const basePathwayId = (schoolIndex - 1) * 3;
@@ -73,9 +65,7 @@ const getPathwayId = (schoolId: number, pathwayType: string): number => {
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'personal' | 'school' | 'parent' | 'review'>(
-    'personal'
-  );
+  const [step, setStep] = useState<'personal' | 'alamat' | 'sekolah' | 'ortu' | 'akun' | 'verifikasi'>('personal');
   const [loading, setLoading] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [formData, setFormData] = useState({
@@ -86,30 +76,31 @@ export default function RegisterPage() {
     gender: '',
     email: '',
     phone: '',
-
+    nilaiRataRata: '',
+    // Address
+    address: '',
+    city: '',
+    province: '',
+    zipcode: '',
     // School
     preferredSchool: '',
     pathway: '',
-    nilaiRataRata: '',
-
     // Parent
     parentName: '',
     parentPhone: '',
-
-    // City for school filtering
-    city: '',
+    // Account
+    password: '',
+    confirmPassword: '',
   });
 
   // Get schools for selected region
   const getSchoolsForCity = (): { id: string; name: string }[] => {
     const city = formData.city?.toLowerCase() || '';
-
     for (const [region, schools] of Object.entries(SCHOOLS_BY_REGION)) {
       if (city.includes(region.toLowerCase())) {
         return schools;
       }
     }
-    // Return all schools if no match
     return Object.values(SCHOOLS_BY_REGION).flat();
   };
 
@@ -133,7 +124,7 @@ export default function RegisterPage() {
     }));
   };
 
-  const validateCurrentStep = (): boolean => {
+  const validateStep = (): boolean => {
     if (step === 'personal') {
       if (!formData.nisn || formData.nisn.length !== 16) {
         addToast('error', 'NISN harus 16 digit');
@@ -161,10 +152,23 @@ export default function RegisterPage() {
       }
       const nilai = parseFloat(formData.nilaiRataRata);
       if (!formData.nilaiRataRata || isNaN(nilai) || nilai < 0 || nilai > 100) {
-        addToast('error', 'Nilai rata-rata ijazah harus antara 0-100');
+        addToast('error', 'Nilai rata-rata ijazah harus 0-100');
         return false;
       }
-    } else if (step === 'school') {
+    } else if (step === 'alamat') {
+      if (!formData.address.trim()) {
+        addToast('error', 'Alamat lengkap harus diisi');
+        return false;
+      }
+      if (!formData.city.trim()) {
+        addToast('error', 'Kota harus diisi');
+        return false;
+      }
+      if (!formData.province.trim()) {
+        addToast('error', 'Provinsi harus diisi');
+        return false;
+      }
+    } else if (step === 'sekolah') {
       if (!formData.preferredSchool) {
         addToast('error', 'Sekolah tujuan harus dipilih');
         return false;
@@ -173,13 +177,22 @@ export default function RegisterPage() {
         addToast('error', 'Jalur pendaftaran harus dipilih');
         return false;
       }
-    } else if (step === 'parent') {
+    } else if (step === 'ortu') {
       if (!formData.parentName.trim()) {
         addToast('error', 'Nama orang tua harus diisi');
         return false;
       }
       if (!formData.parentPhone) {
-        addToast('error', 'No. telepon orang tua harus diisi');
+        addToast('error', 'No. HP orang tua harus diisi');
+        return false;
+      }
+    } else if (step === 'akun') {
+      if (formData.password.length < 8) {
+        addToast('error', 'Password minimal 8 karakter');
+        return false;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        addToast('error', 'Password tidak cocok');
         return false;
       }
     }
@@ -187,34 +200,33 @@ export default function RegisterPage() {
   };
 
   const handleNext = () => {
-    if (validateCurrentStep()) {
-      if (step === 'personal') setStep('school');
-      else if (step === 'school') setStep('parent');
-      else if (step === 'parent') setStep('review');
+    if (validateStep()) {
+      if (step === 'personal') setStep('alamat');
+      else if (step === 'alamat') setStep('sekolah');
+      else if (step === 'sekolah') setStep('ortu');
+      else if (step === 'ortu') setStep('akun');
+      else if (step === 'akun') setStep('verifikasi');
     }
   };
 
   const handleBack = () => {
-    if (step === 'school') setStep('personal');
-    else if (step === 'parent') setStep('school');
-    else if (step === 'review') setStep('parent');
+    if (step === 'alamat') setStep('personal');
+    else if (step === 'sekolah') setStep('alamat');
+    else if (step === 'ortu') setStep('sekolah');
+    else if (step === 'akun') setStep('ortu');
+    else if (step === 'verifikasi') setStep('akun');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateCurrentStep()) {
-      return;
-    }
+    if (!validateStep()) return;
 
     setLoading(true);
-
     try {
-      // Get pathway ID based on school and pathway type
       const schoolId = parseInt(formData.preferredSchool);
       const pathwayId = getPathwayId(schoolId, formData.pathway);
 
-      const response = await fetch('/api/registrations', {
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -225,10 +237,15 @@ export default function RegisterPage() {
           email: formData.email,
           phone: formData.phone,
           nilaiRataRata: formData.nilaiRataRata,
+          address: formData.address,
+          city: formData.city,
+          province: formData.province,
+          zipcode: formData.zipcode,
           preferredSchool: formData.preferredSchool,
           pathway: pathwayId.toString(),
           parentName: formData.parentName,
           parentPhone: formData.parentPhone,
+          password: formData.password,
           certificatePoints: 0,
         }),
       });
@@ -236,363 +253,185 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        addToast('error', data.error || 'Gagal membuat pendaftaran');
+        addToast('error', data.error || 'Gagal menyimpan data');
         setLoading(false);
         return;
       }
 
-      addToast('success', 'Pendaftaran berhasil! No. Registrasi: ' + data.registrationNumber);
+      addToast('success', 'Pendaftaran berhasil! Mengalihkan ke dashboard...');
 
+      // Redirect to login after registration
       setTimeout(() => {
-        router.push('/results');
-      }, 2000);
-    } catch (error) {
-      console.error('Registration error:', error);
-      addToast('error', 'Terjadi kesalahan saat membuat pendaftaran');
+        router.push('/login?registered=true');
+      }, 1500);
+
+    } catch (err) {
+      console.error('Submit error:', err);
+      addToast('error', 'Terjadi kesalahan koneksi');
+    } finally {
       setLoading(false);
     }
   };
 
-  const progressPercentage = {
-    personal: 25,
-    school: 50,
-    parent: 75,
-    review: 100,
-  }[step];
-
+  const progressMap = { personal: 17, alamat: 33, sekolah: 50, ortu: 67, akun: 83, verifikasi: 100 };
+  const steps = ['personal', 'alamat', 'sekolah', 'ortu', 'akun', 'verifikasi'];
   const availableSchools = getSchoolsForCity();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      {/* Toast Notifications */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-6 px-4">
+      {/* Toasts */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`px-6 py-3 rounded-lg text-white font-semibold shadow-lg animate-fade-in ${
-              toast.type === 'success'
-                ? 'bg-green-500'
-                : 'bg-red-500'
-            }`}
-          >
-            {toast.type === 'success' ? '✓ ' : '✗ '} {toast.message}
+        {toasts.map((t) => (
+          <div key={t.id} className={`px-6 py-3 rounded-lg text-white font-semibold shadow-lg ${t.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+            {t.type === 'success' ? '✓' : '✗'} {t.message}
           </div>
         ))}
       </div>
 
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-block bg-blue-600 text-white rounded-lg p-3 mb-4">
+        <div className="text-center mb-6">
+          <div className="inline-block bg-blue-600 text-white rounded-lg p-3 mb-3">
             <span className="text-2xl font-bold">PP</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Pendaftaran PPDB 2026
-          </h1>
-          <p className="text-gray-600">
-            Langkah {['personal', 'school', 'parent', 'review'].indexOf(step) + 1} dari 4
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Pendaftaran PPDB 2026</h1>
+          <p className="text-gray-600">Langkah {steps.indexOf(step) + 1} dari {steps.length}</p>
         </div>
 
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progressPercentage}%` }}
-            />
+        {/* Progress */}
+        <div className="mb-6">
+          <div className="bg-gray-200 rounded-full h-2">
+            <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${progressMap[step as keyof typeof progressMap]}%` }} />
           </div>
-          <p className="text-sm text-gray-600 mt-2">{progressPercentage}% Selesai</p>
         </div>
 
         {/* Form Card */}
-        <Card className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* STEP 1: Personal Information */}
+        <Card className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Step 1: Personal */}
             {step === 'personal' && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold mb-6">Data Pribadi</h2>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">NISN *</label>
-                    <input
-                      type="text"
-                      name="nisn"
-                      placeholder="16 digit NISN"
-                      value={formData.nisn}
-                      onChange={handleInputChange}
-                      maxLength={16}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Nama Lengkap *</label>
-                    <input
-                      type="text"
-                      name="fullName"
-                      placeholder="Nama sesuai ijazah"
-                      value={formData.fullName}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Tanggal Lahir *</label>
-                    <input
-                      type="date"
-                      name="dateOfBirth"
-                      value={formData.dateOfBirth}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Jenis Kelamin *</label>
-                    <select
-                      name="gender"
-                      value={formData.gender}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Pilih</option>
-                      <option value="M">Laki-laki</option>
-                      <option value="F">Perempuan</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Nilai Rata-rata Ijazah *</label>
-                    <input
-                      type="number"
-                      name="nilaiRataRata"
-                      placeholder="0-100"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      value={formData.nilaiRataRata}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Email *</label>
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="email@contoh.com"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">No. Telepon *</label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      placeholder="08xxxxxxxxxx"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
+              <>
+                <h2 className="font-bold text-lg">Data Pribadi</h2>
+                <input type="text" name="nisn" placeholder="NISN (16 digit)" value={formData.nisn} onChange={handleInputChange} maxLength={16} required className="w-full px-4 py-2 border rounded-lg" />
+                <input type="text" name="fullName" placeholder="Nama Lengkap (sesuai ijazah)" value={formData.fullName} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <select name="gender" value={formData.gender} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg">
+                  <option value="">Jenis Kelamin</option>
+                  <option value="M">Laki-laki</option>
+                  <option value="F">Perempuan</option>
+                </select>
+                <input type="number" name="nilaiRataRata" placeholder="Nilai Rata-rata Ijazah (0-100)" min="0" max="100" step="0.01" value={formData.nilaiRataRata} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <input type="email" name="email" placeholder="Email" value={formData.email} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <input type="tel" name="phone" placeholder="No. HP" value={formData.phone} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+              </>
             )}
 
-            {/* STEP 2: School Selection */}
-            {step === 'school' && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold mb-6">Pilihan Sekolah</h2>
+            {/* Step 2: Alamat */}
+            {step === 'alamat' && (
+              <>
+                <h2 className="font-bold text-lg">Alamat Tempat Tinggal</h2>
+                <textarea name="address" placeholder="Alamat lengkap (Jl, No Rumah, RT/RW, Kelurahan, Kecamatan)" rows={3} value={formData.address} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <input type="text" name="city" placeholder="Kota/Kabupaten" value={formData.city} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <input type="text" name="province" placeholder="Provinsi" value={formData.province} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <input type="text" name="zipcode" placeholder="Kode Pos" value={formData.zipcode} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg" />
+              </>
+            )}
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Sekolah Tujuan *</label>
-                  <select
-                    name="preferredSchool"
-                    value={formData.preferredSchool}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">-- Pilih Sekolah --</option>
-                    {availableSchools.map((school) => (
-                      <option key={school.id} value={school.id}>
-                        {school.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {availableSchools.length > 5 ? 'Schools available for your region' : 'All schools available'}
+            {/* Step 3: Sekolah */}
+            {step === 'sekolah' && (
+              <>
+                <h2 className="font-bold text-lg">Pilihan Sekolah</h2>
+                <select name="preferredSchool" value={formData.preferredSchool} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg">
+                  <option value="">-- Pilih Sekolah --</option>
+                  {availableSchools.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <div className="space-y-2">
+                  {[
+                    { value: 'prestasi', label: 'Jalur Prestasi (Nilai ≥ 80)' },
+                    { value: 'zonasi', label: 'Jalur Zonasi' },
+                    { value: 'afirmasi', label: 'Jalur Afirmasi' },
+                  ].map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-blue-50">
+                      <input type="radio" name="pathway" value={opt.value} checked={formData.pathway === opt.value} onChange={handleInputChange} />
+                      <span>{opt.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Step 4: Orang Tua */}
+            {step === 'ortu' && (
+              <>
+                <h2 className="font-bold text-lg">Data Orang Tua/Wali</h2>
+                <input type="text" name="parentName" placeholder="Nama Lengkap Orang Tua" value={formData.parentName} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <input type="tel" name="parentPhone" placeholder="No. HP Orang Tua" value={formData.parentPhone} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+              </>
+            )}
+
+            {/* Step 5: Akun */}
+            {step === 'akun' && (
+              <>
+                <h2 className="font-bold text-lg">🔐 Buat Akun</h2>
+                <p className="text-sm text-gray-600 mb-4">Buat password untuk login ke dashboard Anda</p>
+                <input type="password" name="password" placeholder="Password (min 8 karakter)" value={formData.password} onChange={handleInputChange} required minLength={8} className="w-full px-4 py-2 border rounded-lg" />
+                <input type="password" name="confirmPassword" placeholder="Konfirmasi Password" value={formData.confirmPassword} onChange={handleInputChange} required className="w-full px-4 py-2 border rounded-lg" />
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-sm text-yellow-800">
+                    <strong>⚠️ Penting:</strong> Jangan lupa password Anda! Anda akan memerlukan password ini untuk login dan melihat hasil pengumuman.
                   </p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-3">Jalur Pendaftaran *</label>
-                  <div className="space-y-3">
-                    {[
-                      { value: 'prestasi', label: 'Jalur Prestasi (Nilai ≥ 80.00)' },
-                      { value: 'zonasi', label: 'Jalur Zonasi' },
-                      { value: 'afirmasi', label: 'Jalur Afirmasi' },
-                    ].map((option) => (
-                      <label
-                        key={option.value}
-                        className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-blue-50"
-                      >
-                        <input
-                          type="radio"
-                          name="pathway"
-                          value={option.value}
-                          checked={formData.pathway === option.value}
-                          onChange={handleInputChange}
-                          required
-                        />
-                        <span className="text-gray-700">{option.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              </>
             )}
 
-            {/* STEP 3: Parent Information */}
-            {step === 'parent' && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold mb-6">Data Orang Tua/Wali</h2>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Nama Orang Tua/Wali *</label>
-                  <input
-                    type="text"
-                    name="parentName"
-                    placeholder="Nama lengkap"
-                    value={formData.parentName}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+            {/* Step 6: Verifikasi */}
+            {step === 'verifikasi' && (
+              <>
+                <h2 className="font-bold text-lg">✅ Verifikasi Data</h2>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                  <p><strong>Data Pribadi:</strong></p>
+                  <p>• NISN: {formData.nisn}</p>
+                  <p>• Nama: {formData.fullName}</p>
+                  <p>• Email: {formData.email}</p>
+                  <p>• No. HP: {formData.phone}</p>
+                  <p><strong>Alamat:</strong></p>
+                  <p>• {formData.address}, {formData.city}, {formData.province}</p>
+                  <p><strong>Sekolah:</strong></p>
+                  <p>• {availableSchools.find(s => s.id === formData.preferredSchool)?.name}</p>
+                  <p>• Jalur: {formData.pathway}</p>
+                  <p><strong>Orang Tua:</strong></p>
+                  <p>• {formData.parentName}</p>
+                  <p><strong>Akun:</strong></p>
+                  <p>• Password: ****{formData.password.slice(-4)}</p>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">No. Telepon Orang Tua/Wali *</label>
-                  <input
-                    type="tel"
-                    name="parentPhone"
-                    placeholder="08xxxxxxxxxx"
-                    value={formData.parentPhone}
-                    onChange={handleInputChange}
-                    required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
+                <label className="flex items-start gap-2">
+                  <input type="checkbox" required />
+                  <span className="text-sm">Saya menyatakan data di atas benar dan sesuai dengan dokumen asli.</span>
+                </label>
+              </>
             )}
 
-            {/* STEP 4: Review */}
-            {step === 'review' && (
-              <div className="space-y-6">
-                <h2 className="text-xl font-bold mb-6">Verifikasi Data</h2>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">NISN</p>
-                    <p className="font-semibold">{formData.nisn}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">Nama</p>
-                    <p className="font-semibold">{formData.fullName}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">Nilai Rata-rata</p>
-                    <p className="font-semibold">{formData.nilaiRataRata}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-xs text-gray-600 mb-1">Jalur</p>
-                    <p className="font-semibold capitalize">{formData.pathway}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg col-span-2">
-                    <p className="text-xs text-gray-600 mb-1">Sekolah</p>
-                    <p className="font-semibold">
-                      {availableSchools.find(s => s.id === formData.preferredSchool)?.name || formData.preferredSchool}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <p className="text-sm text-yellow-900">
-                    ⚠️ Pastikan semua data sudah benar. Data tidak bisa diubah setelah submit.
-                  </p>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <input type="checkbox" id="agree" required className="mt-1" />
-                  <label htmlFor="agree" className="text-sm text-gray-700">
-                    Saya menyatakan data yang diisi adalah benar dan sesuai dokumen asli
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex gap-4 pt-6 border-t">
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4 border-t">
               {step !== 'personal' && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  disabled={loading}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 py-3 rounded-lg font-semibold"
-                >
-                  ← Kembali
-                </button>
+                <button type="button" onClick={handleBack} className="flex-1 bg-gray-200 py-3 rounded-lg font-semibold">← Kembali</button>
               )}
-              {step !== 'review' ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={loading}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg font-semibold"
-                >
-                  Lanjut →
-                </button>
+              {step !== 'verifikasi' ? (
+                <button type="button" onClick={handleNext} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold">Lanjut →</button>
               ) : (
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <span className="inline-block animate-spin">⟳</span>
-                      Mengirim...
-                    </>
-                  ) : (
-                    <>✓ Kirim Pendaftaran</>
-                  )}
+                <button type="submit" disabled={loading} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold disabled:opacity-50">
+                  {loading ? '⟳ Mengirim...' : '✓ Daftar Sekarang'}
                 </button>
               )}
             </div>
           </form>
         </Card>
 
-        {/* Footer */}
-        <div className="text-center mt-6 text-gray-600 text-sm">
-          Sudah punya akun?{' '}
-          <Link href="/login" className="text-blue-600 hover:text-blue-700 font-semibold">
-            Masuk di sini
-          </Link>
-        </div>
+        <p className="text-center mt-4 text-sm text-gray-600">
+          Sudah punya akun? <Link href="/login" className="text-blue-600 font-semibold">Masuk</Link>
+        </p>
       </div>
     </div>
   );

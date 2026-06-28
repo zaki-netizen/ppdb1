@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,11 +48,7 @@ export default function DocumentVerificationPage() {
     }, 5000);
   };
 
-  useEffect(() => {
-    fetchDocuments();
-  }, [filter]);
-
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     setLoading(true);
     try {
       // In a real app, you'd have a dedicated admin documents endpoint
@@ -68,7 +64,11 @@ export default function DocumentVerificationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments, filter]);
 
   const verifyDocument = async (docId: number, status: 'approved' | 'rejected', reason?: string) => {
     setProcessing(true);

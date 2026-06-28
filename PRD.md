@@ -1,8 +1,8 @@
 # 📋 PPDB Portal - Product Requirements Document
 
-**Status: Development Phase 1 COMPLETE ✅**  
+**Status: Development Phase 2 COMPLETE ✅**
 **Last Updated: June 27, 2026**
-**Next Phase: File Upload & Notifications (June 25)**
+**Production URL: https://ppdb1.vercel.app**
 
 ---
 
@@ -335,9 +335,147 @@ npm run db:setup     # Shortcut untuk semua di atas
 
 ---
 
-## 🔄 FASE 2: FEATURE COMPLETION - NEXT
+## ✅ FASE 2: FEATURE COMPLETION - COMPLETE
 
-### Tasks untuk Besok (June 25):
+### 🔧 Bug Fixes & Improvements
+
+**Status: ✅ COMPLETE - June 27, 2026**
+
+| Issue | Solution |
+|-------|----------|
+| Data alamat tidak tersimpan | API registrations diperbaiki, semua field (city, province, zipcode) sekarang tersimpan |
+| Form pendaftaran error | Logging ditambahkan, error handling diperbaiki |
+| Auth tidak berfungsi | SessionProvider ditambahkan di providers.tsx |
+| Results page tidak berfungsi | Search by NISN/No.Registrasi sekarang berfungsi |
+| My Registrations kosong | Sekarang menampilkan data sesuai user yang login |
+
+**Files Updated:**
+- `src/app/api/registrations/route.ts` - Logging, error handling, field address
+- `src/app/providers.tsx` - Added SessionProvider
+- `src/app/results/page.tsx` - Functional search
+- `src/app/my-registrations/page.tsx` - Shows user registrations
+- `src/app/register/page.tsx` - Added console logging
+
+---
+
+### ✨ NEW: Admin Dashboard Features
+
+**Status: ✅ COMPLETE - June 27, 2026**
+
+#### 1. Kelola Pendaftaran `/dashboard/registrations`
+**File:** `src/app/dashboard/registrations/page.tsx`
+- ✅ Table semua pendaftar
+- ✅ Filter (Semua/Pending/Terverifikasi/Ditolak)
+- ✅ Search (NISN/No.Reg/Nama)
+- ✅ Modal detail pendaftaran
+- ✅ Verifikasi individual (Terima/Tolak)
+
+**API:** `src/app/api/registrations/[id]/verify/route.ts`
+
+#### 2. Verifikasi Batch `/dashboard/verify`
+**File:** `src/app/dashboard/verify/page.tsx`
+- ✅ Pilih beberapa pendaftar sekaligus
+- ✅ Pilih semua / batal semua
+- ✅ Verifikasi batch (terima semua)
+- ✅ Tolak batch (tolak semua)
+- ✅ Counter selected items
+
+#### 3. Export Data `/dashboard/export`
+**File:** `src/app/dashboard/export/page.tsx`
+- ✅ Export semua pendaftar (CSV)
+- ✅ Export pendaftar terverifikasi (CSV)
+- ✅ Export pendaftar pending (CSV)
+- ✅ Export hasil diterima (CSV)
+
+**API:** `src/app/api/export/route.ts`
+
+#### 4. Kirim Notifikasi `/dashboard/notifications`
+**File:** `src/app/dashboard/notifications/page.tsx`
+- ✅ Template pesan siap pakai
+- ✅ Kirim ke semua pendaftar
+- ✅ Kirim ke pending verification
+- ✅ Kirim ke yang sudah terverifikasi
+- ✅ Preview pesan
+
+**API:** Updated `src/app/api/notifications/route.ts` (added POST method)
+
+#### 5. Laporan & Statistik `/dashboard/reports`
+**File:** `src/app/dashboard/reports/page.tsx`
+- ✅ Total pendaftar
+- ✅ Breakdown status (verified/rejected/pending/accepted)
+- ✅ Rata-rata GPA
+- ✅ Verifikasi rate (%)
+- ✅ Pendaftar per sekolah (bar chart)
+- ✅ Pendaftar per jalur (bar chart)
+- ✅ Progress bar visual
+
+---
+
+### 🔐 Account Management
+
+**Status: ✅ COMPLETE - June 27, 2026**
+
+#### Password Reset Script
+**File:** `scripts/reset-password.js`
+- Reset password admin & student
+- List semua user di database
+- Show password status (ada/tidak ada)
+
+**Run:** `node scripts/reset-password.js`
+
+#### Demo Accounts (Production)
+```
+Admin:
+  Email: admin@ppdb.test
+  Password: admin123
+
+Student:
+  Email: ahmad@student.test
+  Password: password123
+```
+
+---
+
+### 🚀 Production Deployment
+
+**Status: ✅ LIVE**
+
+- **URL:** https://ppdb1.vercel.app
+- **Region:** Singapore (sin1)
+- **Database:** Neon PostgreSQL
+- **Deploy Command:** `vercel --prod`
+
+---
+
+## 🔄 FASE 3: NEXT - User Account System
+
+### Tasks untuk Development:
+
+#### Priority 1 - Password saat Pendaftaran
+- [ ] Tambah field password di form registrasi
+- [ ] Simpan password dengan hash saat create user
+- [ ] Validasi password (min 8 karakter)
+
+#### Priority 2 - Reset Password
+- [ ] Halaman lupa password
+- [ ] Kirim email reset password
+- [ ] Token-based password reset
+
+#### Priority 3 - Peserta Features
+- [ ] Dashboard peserta lihat status
+- [ ] Upload dokumen
+- [ ] Edit data pendaftaran
+- [ ] Tracking verifikasi dokumen
+
+#### Priority 4 - Admin Enhancements
+- [ ] Document verification interface
+- [ ] Bulk import pendaftar (CSV)
+- [ ] Email notifications (Resend integration)
+- [ ] Real-time updates (WebSocket)
+
+---
+
+## ✅ FASE 1: FOUNDATION DEVELOPMENT - COMPLETE
 
 #### Priority 1 - File Upload System
 - [ ] Document upload form component
@@ -372,7 +510,7 @@ npm run db:setup     # Shortcut untuk semua di atas
 
 ---
 
-## ✨ Recent UI Integration (Update)
+## ✨ Recent UI Integration (Phase 1)
 
 - **Shadcn UI installed** and scaffolded (Radix / Nova preset).
 - **Paper-style components added**: `Card`, `Input`, re-used `Button` from shadcn.
@@ -383,7 +521,7 @@ These changes standardize the UI and prepare the repo for component-driven updat
 
 ---
 
-## 📊 Current Implementation Status
+## 📊 Current Implementation Status (Updated June 27, 2026)
 
 ### Frontend Completion
 ```
@@ -392,19 +530,26 @@ These changes standardize the UI and prepare the repo for component-driven updat
 ✅ Form validation & submission
 ✅ Toast notifications
 ✅ Responsive design
-⏳ File upload component
-⏳ Results/Rankings display
-⏳ Admin verification panel
+✅ Admin Dashboard (5 pages)
+✅ Kelola Pendaftaran
+✅ Verifikasi Batch
+✅ Export Data
+✅ Kirim Notifikasi
+✅ Laporan & Statistik
+⏳ File upload component (user side)
+⏳ Results/Rankings display (live)
 ```
 
 ### Backend Completion
 ```
 ✅ Authentication system
-✅ Registration API (CRUD)
+✅ Registration API (CRUD + Verify)
 ✅ Rankings API (calculation & fetch)
 ✅ Documents API (upload/delete)
-✅ Notifications API (fetch/mark-read)
+✅ Notifications API (fetch/mark-read/send)
 ✅ Session API
+✅ Export API
+✅ Verify Registration API
 ⏳ Email notifications
 ⏳ Document verification workflow
 ⏳ Audit log query endpoints
@@ -417,6 +562,7 @@ These changes standardize the UI and prepare the repo for component-driven updat
 ✅ Indexes & optimization
 ✅ Migrations setup
 ✅ Seed data
+✅ Password hashing
 ⏳ Real-time trigger (untuk ranking update)
 ⏳ View untuk reporting
 ```
@@ -511,16 +657,29 @@ http://localhost:3000
 
 ---
 
-## 📋 Checklist untuk Tomorrow
+## 📋 Checklist untuk Development Lanjutan
 
-- [ ] Verify dev server runs (`npm run dev`)
-- [ ] Verify database connection (`npm run db:test`)
-- [ ] Test registration form submission
-- [ ] Check API responses di browser DevTools
-- [ ] Verify data saved ke database
-- [ ] Build file upload component
-- [ ] Integrate results page dengan API
-- [ ] Test admin functions
+### ✅ Phase 2 - Completed June 27, 2026
+- [x] Fix data alamat tidak tersimpan
+- [x] Fix auth SessionProvider
+- [x] Buat halaman Kelola Pendaftaran
+- [x] Buat halaman Verifikasi Batch
+- [x] Buat halaman Export Data
+- [x] Buat halaman Kirim Notifikasi
+- [x] Buat halaman Laporan & Statistik
+- [x] Deploy ke production Vercel
+- [x] Update PRD.md
+
+### 🔄 Phase 3 - Next Development
+- [ ] Tambah field password di form registrasi
+- [ ] Simpan password dengan hash saat daftar
+- [ ] Halaman lupa password
+- [ ] Reset password via email
+- [ ] Dashboard peserta (lihat status)
+- [ ] Upload dokumen (user side)
+- [ ] Document verification (admin side)
+- [ ] Email notifications (Resend)
+- [ ] Real-time updates (WebSocket)
 
 ---
 
@@ -538,26 +697,37 @@ http://localhost:3000
 
 ## 🔗 Important Links
 
-- **Live Server:** http://localhost:3000
+**Production (LIVE):** https://ppdb1.vercel.app
+
+**Local Development:**
+- **Dev Server:** http://localhost:3000
 - **API Base:** http://localhost:3000/api
 - **Admin Dashboard:** http://localhost:3000/dashboard
 - **Registration:** http://localhost:3000/register
 - **Results:** http://localhost:3000/results
 
+**Admin Features:**
+- **Kelola:** https://ppdb1.vercel.app/dashboard/registrations
+- **Verify:** https://ppdb1.vercel.app/dashboard/verify
+- **Export:** https://ppdb1.vercel.app/dashboard/export
+- **Notifikasi:** https://ppdb1.vercel.app/dashboard/notifications
+- **Laporan:** https://ppdb1.vercel.app/dashboard/reports
+
 ---
 
 ## 📞 Contact & Support
 
-**Developer:** Muhammad (using GitHub Copilot)  
-**Project Started:** June 23, 2026  
-**Phase 1 Completed:** June 24, 2026  
-**Next Phase Start:** June 25, 2026
+**Developer:** Muhammad Zaki Khairi
+**Project Started:** June 23, 2026
+**Phase 1 Completed:** June 24, 2026
+**Phase 2 Completed:** June 27, 2026
+**Production:** https://ppdb1.vercel.app
 
 ---
 
 ## 🎉 Summary
 
-**PHASE 1 STATUS: ✅ COMPLETE**
+**PHASE 1 STATUS: ✅ COMPLETE (June 24)**
 
 Apa yang sudah dikerjakan:
 - ✅ Full-stack architecture (Frontend + Backend + Database)
@@ -567,12 +737,22 @@ Apa yang sudah dikerjakan:
 - ✅ Admin dashboard
 - ✅ Complete documentation
 
-**Ready untuk:** File upload, notifications, results display, dan fitur tambahan lainnya.
+**PHASE 2 STATUS: ✅ COMPLETE (June 27)**
 
-**Next:** Lanjutkan dengan Phase 2 fitur-fitur tambahan besok! 🚀
+Apa yang sudah dikerjakan:
+- ✅ Bug fixes (alamat tidak tersimpan, auth error, dll)
+- ✅ 5 Admin Dashboard Features (registrations, verify, export, notifications, reports)
+- ✅ Password reset script
+- ✅ Production deployment ke Vercel
+- ✅ Updated PRD.md documentation
+
+**Ready untuk:** User account system, password saat pendaftaran, reset password, email notifications.
+
+**Next:** Phase 3 - User Account System 🚀
 
 ---
 
-**Last Commit:** Form API Integration Complete  
-**Environment:** Development (localhost:3000)  
-**Database:** PostgreSQL (Ready)
+**Last Updated:** June 27, 2026
+**Environment:** Production (Vercel)
+**Database:** Neon PostgreSQL
+**Production URL:** https://ppdb1.vercel.app

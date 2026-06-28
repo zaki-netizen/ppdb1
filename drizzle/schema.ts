@@ -121,6 +121,7 @@ export const registrations = pgTable(
     verification_status: varchar('verification_status', { length: 50 }).default('pending'), // pending, approved, rejected
     selection_status: varchar('selection_status', { length: 50 }).default('pending'), // pending, accepted, rejected, waitlist
     current_rank: integer('current_rank'),
+    daftar_ulang_completed: boolean('daftar_ulang_completed').default(false),
     
     // Timestamps
     submitted_at: timestamp('submitted_at'),

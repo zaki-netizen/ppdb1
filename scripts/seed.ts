@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import {
   users,
   schools,
+  registrations,
   registration_pathways,
   ppdb_schedules,
 } from '@/drizzle/schema';
@@ -55,14 +56,16 @@ async function seed() {
       },
     ];
 
-    for (const applicant of applicants) {
-      await db.insert(users).values({
-        ...applicant,
-        password_hash: applicantPassword,
-        role: 'applicant',
-        status: 'active',
-      });
-    }
+    const insertedUsers = await Promise.all(
+      applicants.map((applicant) =>
+        db.insert(users).values({
+          ...applicant,
+          password_hash: applicantPassword,
+          role: 'applicant',
+          status: 'active',
+        }).returning()
+      )
+    );
 
     // 4. Create Schools
     console.log('🏫 Creating schools...');
@@ -167,7 +170,93 @@ async function seed() {
       )
     );
 
-    // 6. Create PPDB Schedule
+    // 6. Create Sample Registrations for Users
+    console.log('📝 Creating sample registrations...');
+    const timestamp = Date.now().toString().slice(-6);
+
+    const registrationsData = [
+      {
+        user_id: insertedUsers[0][0].id, // Ahmad
+        nisn: '0012345678901234',
+        registration_number: `REG-2026-${timestamp}-001`,
+        date_of_birth: new Date('2010-05-15'),
+        gender: 'M',
+        address: 'Jl. Melati No. 10, RT 01/RW 05, Kelurahan Melawai',
+        city: 'Jakarta Selatan',
+        province: 'DKI Jakarta',
+        zipcode: '12160',
+        latitude: '-6.2615',
+        longitude: '106.8113',
+        parent_name: 'H. Ahmad Wijaya',
+        parent_phone: '081234567890',
+        parent_email: 'ahmad.wijaya@email.com',
+        preferred_school_id: 1,
+        pathway_id: 1,
+        gpa: '8.50',
+        certificate_points: 75,
+        total_score: '51.90',
+        registration_status: 'submitted',
+        verification_status: 'pending',
+        selection_status: 'pending',
+        submitted_at: new Date(),
+      },
+      {
+        user_id: insertedUsers[1][0].id, // Siti
+        nisn: '0012345678901235',
+        registration_number: `REG-2026-${timestamp}-002`,
+        date_of_birth: new Date('2010-08-22'),
+        gender: 'F',
+        address: 'Jl. Anggrek No. 25, RT 02/RW 08',
+        city: 'Bandung',
+        province: 'Jawa Barat',
+        zipcode: '40123',
+        latitude: '-6.8957',
+        longitude: '107.6049',
+        parent_name: 'Hj. Siti Aminah',
+        parent_phone: '081234567891',
+        parent_email: 'siti.aminah@email.com',
+        preferred_school_id: 2,
+        pathway_id: 4,
+        gpa: '9.00',
+        certificate_points: 85,
+        total_score: '55.40',
+        registration_status: 'submitted',
+        verification_status: 'approved',
+        selection_status: 'pending',
+        submitted_at: new Date(),
+      },
+      {
+        user_id: insertedUsers[2][0].id, // Budi
+        nisn: '0012345678901236',
+        registration_number: `REG-2026-${timestamp}-003`,
+        date_of_birth: new Date('2010-03-10'),
+        gender: 'M',
+        address: 'Jl. Kenanga No. 8, RT 01/RW 03',
+        city: 'Surabaya',
+        province: 'Jawa Timur',
+        zipcode: '60123',
+        latitude: '-7.2575',
+        longitude: '112.7521',
+        parent_name: 'Bpk. Budi Santoso',
+        parent_phone: '081234567892',
+        parent_email: 'budi.santoso@email.com',
+        preferred_school_id: 3,
+        pathway_id: 1,
+        gpa: '8.20',
+        certificate_points: 60,
+        total_score: '48.92',
+        registration_status: 'submitted',
+        verification_status: 'pending',
+        selection_status: 'pending',
+        submitted_at: new Date(),
+      },
+    ];
+
+    await Promise.all(
+      registrationsData.map((reg) => db.insert(registrations).values(reg))
+    );
+
+    // 7. Create PPDB Schedule
     console.log('📅 Creating PPDB schedules...');
     const now = new Date();
     const schedules = [
@@ -201,11 +290,17 @@ async function seed() {
     console.log('\n✨ Seed completed successfully!');
     console.log('📊 Created:');
     console.log('   • 1 admin user (admin@ppdb.test / admin123)');
-    console.log('   • 3 applicant users');
+    console.log('   • 3 applicant users with registrations');
     console.log('   • 3 schools with locations');
     console.log('   • 5 registration pathways');
     console.log('   • 3 PPDB schedule events');
     console.log('\n🎯 Next: npm run dev');
+    console.log('\n📌 Demo Accounts:');
+    console.log('   Admin:   admin@ppdb.test / admin123');
+    console.log('   Student: ahmad@student.test / password123');
+    console.log('   Student: siti@student.test / password123');
+    console.log('   Student: budi@student.test / password123');
+
   } catch (error) {
     console.error('❌ Seed failed:', error);
     process.exit(1);

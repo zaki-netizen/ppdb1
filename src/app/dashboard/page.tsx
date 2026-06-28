@@ -21,7 +21,6 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Fetch registrations for stats
         const regResponse = await fetch('/api/registrations');
         if (regResponse.ok) {
           const data = await regResponse.json();

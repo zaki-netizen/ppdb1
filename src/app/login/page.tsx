@@ -1,17 +1,31 @@
 "use client";
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { signIn, useSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
+import { useEffect } from 'react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const isAdmin = session.user.email?.toLowerCase().includes('admin') || (session.user as any).role === 'admin';
+      router.push(isAdmin ? '/dashboard' : '/dashboard/student');
+    }
+  }, [status, session, router]);
+
+  // Check if user just registered
+  const justRegistered = searchParams.get('registered') === 'true';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,21 +33,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn('credentials', {
+      const result: any = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
-      if (result?.error) {
-        setError('Email atau password salah. Silakan coba lagi.');
+      if (result && result.error) {
+        setError('Email atau password salah.');
         setLoading(false);
       } else {
-        // Wait a moment for the session to be established
-        setTimeout(() => {
-          router.push('/dashboard');
-          router.refresh();
-        }, 100);
+        // Determine dashboard based on email
+        const isAdmin = email.toLowerCase().includes('admin');
+        const redirectUrl = isAdmin ? '/dashboard' : '/dashboard/student';
+        console.log('[Login] Success, redirecting to:', redirectUrl);
+        router.push(redirectUrl);
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -56,6 +70,13 @@ export default function LoginPage() {
             <p className="text-gray-600">Sistem Penerimaan Peserta Didik Baru</p>
           </div>
 
+          {/* Success Message for newly registered users */}
+          {justRegistered && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+              ✅ Pendaftaran berhasil! Silakan login dengan akun yang baru dibuat.
+            </div>
+          )}
+
           {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -64,7 +85,7 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -72,8 +93,11 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
+                name="user-email"
+                id="user-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="off"
                 required
                 placeholder="email@contoh.com"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -87,8 +111,11 @@ export default function LoginPage() {
               </label>
               <input
                 type="password"
+                name="user-password"
+                id="user-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
                 required
                 placeholder="••••••••"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -126,11 +153,26 @@ export default function LoginPage() {
 
         {/* Info Banner */}
         <div className="mt-6 text-center text-sm text-gray-600 bg-white bg-opacity-80 rounded-lg p-4">
-          <p>
-            Hubungi admin sekolah untuk mendapatkan akun login.
-          </p>
+          <p className="font-medium mb-2">Akun Demo:</p>
+          <p><strong>Admin:</strong> admin@ppdb.test / admin123</p>
+          <p><strong>Student:</strong> ahmad@student.test / password123</p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+        <div className="text-center">
+          <span className="inline-block animate-spin text-4xl text-blue-600">⟳</span>
+          <p className="mt-4 text-gray-600">Memuat...</p>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
