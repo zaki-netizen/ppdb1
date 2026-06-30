@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/card';
 
 interface Registration {
@@ -30,42 +29,44 @@ interface Registration {
 }
 
 export default function CekHasilPage() {
-  const { data: session, status } = useSession();
+  const [session, setSession] = useState<any>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
-    if (status === 'loading') return;
-    if (status === 'authenticated' && session?.user) {
-      const email = (session.user as any)?.email || '';
-      setUserEmail(email);
-      fetchData(email);
-    } else {
-      setLoading(false);
-    }
-  }, [status, session]);
+    const fetchData = async () => {
+      try {
+        // Fetch session
+        const sessionRes = await fetch('/api/auth/session');
+        const sessionData = await sessionRes.json();
 
-  const fetchData = async (email: string) => {
-    try {
-      const response = await fetch('/api/registrations');
-      if (response.ok) {
-        const data = await response.json();
-        let regs: Registration[] = Array.isArray(data) ? data : [];
-
-        // Filter by user email
-        if (email) {
-          regs = regs.filter(r => r.user?.email === email);
+        if (!sessionData || !sessionData.email) {
+          setSession(null);
+          setLoading(false);
+          return;
         }
 
+        setSession(sessionData);
+
+        // Fetch registrations
+        const regRes = await fetch('/api/registrations');
+        const regData = await regRes.json();
+
+        // Filter by current user
+        const regs: Registration[] = Array.isArray(regData)
+          ? regData.filter((r: any) => r.user?.email === sessionData.email)
+          : [];
+
         setRegistrations(regs);
+      } catch (error) {
+        console.error('Error fetching:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching registrations:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchData();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, { bg: string; text: string; label: string }> = {
@@ -85,11 +86,23 @@ export default function CekHasilPage() {
     );
   };
 
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
       <main className="min-h-screen py-8 px-4 bg-gradient-to-br from-green-50 to-blue-50">
         <div className="max-w-3xl mx-auto flex items-center justify-center py-20">
           <span className="text-5xl animate-bounce">📚</span>
+        </div>
+      </main>
+    );
+  }
+
+  if (!session) {
+    return (
+      <main className="min-h-screen py-8 px-4 bg-gradient-to-br from-green-50 to-blue-50">
+        <div className="max-w-3xl mx-auto">
+          <Link href="/login" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold inline-block">
+            Login Dulu
+          </Link>
         </div>
       </main>
     );
@@ -103,13 +116,13 @@ export default function CekHasilPage() {
         </Link>
 
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🎓 Cek Hasil Seleksi</h1>
-        <p className="text-gray-600 mb-6">Email: {userEmail}</p>
+        <p className="text-gray-600 mb-6">Login sebagai: {session.email}</p>
 
         {registrations.length === 0 ? (
           <Card className="p-8 text-center">
             <div className="text-6xl mb-4">🔍</div>
             <h2 className="text-xl font-bold mb-2">Tidak Ada Pendaftaran</h2>
-            <p className="text-gray-600 mb-4">Email ini belum memiliki pendaftaran.</p>
+            <p className="text-gray-600 mb-4">Anda belum memiliki pendaftaran.</p>
             <Link href="/register" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700">
               Daftar Sekarang
             </Link>
@@ -148,7 +161,7 @@ export default function CekHasilPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 border-t pt-4">
-                  <span className="text-xs text-gray-500">Status Pendaftaran:</span>
+                  <span className="text-xs text-gray-500">Status:</span>
                   {getStatusBadge(reg.registration_status)}
                   {getStatusBadge(reg.verification_status)}
                 </div>
