@@ -1,14 +1,18 @@
-import NextAuth from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
+import { NextAuthOptions, getServerSession } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import { db } from '@/lib/db';
 import { users } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
+  pages: {
+    signIn: '/login',
+  },
   providers: [
-    Credentials({
+    CredentialsProvider({
+      name: 'Credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
@@ -22,7 +26,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         try {
           const user = await db.query.users.findFirst({
-            where: eq(users.email, credentials.email as string),
+            where: eq(users.email, credentials.email),
           });
 
           if (!user) {
@@ -35,7 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
-          const isValid = await bcrypt.compare(credentials.password as string, user.password_hash);
+          const isValid = await bcrypt.compare(credentials.password, user.password_hash);
           if (!isValid) {
             console.log('[AUTH] Invalid password:', credentials.email);
             return null;
@@ -55,33 +59,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  pages: {
-    signIn: '/login',
-  },
   callbacks: {
     async jwt({ token, user }) {
-      console.log('[JWT] token:', token);
       if (user) {
-        token.id = String(user.id);
+        token.id = user.id;
         token.email = user.email;
         token.name = user.name;
         token.role = (user as any).role;
-        console.log('[JWT] Set role:', token.role);
       }
       return token;
     },
     async session({ session, token }) {
-      console.log('[SESSION] token:', JSON.stringify(token));
       if (session.user) {
         (session.user as any).id = token.id as string;
         (session.user as any).role = token.role;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
-        console.log('[SESSION] Done, role:', token.role);
       }
       return session;
     },
   },
-  trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET,
-});
+};
+
+// Server-side session helper
+export const auth = () => getServerSession(authOptions);
