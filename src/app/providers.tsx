@@ -7,7 +7,7 @@ import { ReactNode } from 'react';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider refetchInterval={5} refetchOnWindowFocus={true}>
       <AuthProvider>
         <RegistrationProvider>
           {children}

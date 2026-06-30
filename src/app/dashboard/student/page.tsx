@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { Card } from '@/components/ui/card';
 
 interface Registration {
@@ -32,56 +31,48 @@ interface Registration {
 }
 
 export default function StudentDashboard() {
-  const { data: session, status } = useSession();
+  const [session, setSession] = useState<any>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
-      // Wait for session to load
-      if (status === 'loading') {
-        return;
-      }
-
-      // If not authenticated, stop loading
-      if (status === 'unauthenticated' || !session?.user?.email) {
-        console.log('[DEBUG] User not authenticated');
-        setLoading(false);
-        return;
-      }
-
-      const email = session.user.email;
-      console.log('[DEBUG] Fetching data for email:', email);
-      setUserEmail(email);
-
       try {
-        // Use the email parameter in the API call - more reliable than client-side filtering
-        const response = await fetch(`/api/registrations?email=${encodeURIComponent(email)}`);
+        // Fetch session first
+        const sessionRes = await fetch('/api/auth/session');
+        const sessionData = await sessionRes.json();
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch registrations');
+        if (!sessionData || !sessionData.email) {
+          setSession(null);
+          setLoading(false);
+          return;
         }
 
-        const data = await response.json();
-        console.log('[DEBUG] API Response:', data);
+        setSession(sessionData);
+        console.log('[DEBUG] Logged in as:', sessionData.email);
 
-        // Handle both array response and object with data property
-        const regs: Registration[] = Array.isArray(data) ? data : data.data || [];
+        // Fetch registrations
+        const regRes = await fetch('/api/registrations');
+        const regData = await regRes.json();
+
+        // Filter by current user email
+        const regs: Registration[] = Array.isArray(regData)
+          ? regData.filter((r: any) => r.user?.email === sessionData.email)
+          : [];
         console.log('[DEBUG] Found registrations:', regs.length);
 
         setRegistrations(regs);
       } catch (err) {
-        console.error('[DEBUG] Error fetching:', err);
-        setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat mengambil data');
+        console.error('[DEBUG] Error:', err);
+        setError('Terjadi kesalahan saat mengambil data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [status, session]);
+  }, []);
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, { bg: string; text: string; label: string }> = {
@@ -102,7 +93,7 @@ export default function StudentDashboard() {
   };
 
   // Loading state
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
       <main className="min-h-screen py-8 px-4 bg-gradient-to-br from-green-50 to-blue-50">
         <div className="max-w-5xl mx-auto flex items-center justify-center py-20">
@@ -116,7 +107,7 @@ export default function StudentDashboard() {
   }
 
   // Not authenticated state
-  if (status === 'unauthenticated' || !session?.user?.email) {
+  if (!session) {
     return (
       <main className="min-h-screen py-8 px-4 bg-gradient-to-br from-green-50 to-blue-50">
         <div className="max-w-5xl mx-auto">
@@ -141,7 +132,7 @@ export default function StudentDashboard() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">🎓 Dashboard Peserta</h1>
             <p className="text-gray-600">Selamat datang di Portal PPDB!</p>
-            {userEmail && <p className="text-sm text-gray-500">Login sebagai: {userEmail}</p>}
+            {session?.email && <p className="text-sm text-gray-500">Login sebagai: {session.email}</p>}
           </div>
           <div className="flex items-center gap-4">
             <Link href="/notifications" className="relative">
