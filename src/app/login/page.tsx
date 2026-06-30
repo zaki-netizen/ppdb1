@@ -33,25 +33,41 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const result: any = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
+      // Use direct fetch to bypass CSRF issues
+      const csrfRes = await fetch('/api/auth/csrf');
+      const csrfData = await csrfRes.json();
+
+      const response = await fetch('/api/auth/callback/credentials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          email,
+          password,
+          csrfToken: csrfData.csrfToken,
+          callbackUrl: `${window.location.origin}/dashboard/student`,
+          json: 'true',
+        }),
+        redirect: 'manual',
       });
 
-      if (result && result.error) {
-        setError('Email atau password salah.');
-        setLoading(false);
-      } else {
-        // Determine dashboard based on email
+      // Check if login was successful by trying to get session
+      const sessionRes = await fetch('/api/auth/session');
+      const sessionData = await sessionRes.json();
+
+      if (sessionData?.user) {
         const isAdmin = email.toLowerCase().includes('admin');
         const redirectUrl = isAdmin ? '/dashboard' : '/dashboard/student';
-        console.log('[Login] Success, redirecting to:', redirectUrl);
+        console.log('[Login] Success, user:', sessionData.user.email);
         router.push(redirectUrl);
+      } else {
+        setError('Email atau password salah.');
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
       setLoading(false);
     }
   };
