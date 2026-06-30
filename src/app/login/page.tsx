@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
@@ -37,7 +37,7 @@ function LoginForm() {
       const csrfRes = await fetch('/api/auth/csrf');
       const csrfData = await csrfRes.json();
 
-      const response = await fetch('/api/auth/callback/credentials', {
+      await fetch('/api/auth/callback/credentials', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -49,7 +49,7 @@ function LoginForm() {
           callbackUrl: `${window.location.origin}/dashboard/student`,
           json: 'true',
         }),
-        redirect: 'manual',
+        credentials: 'include',
       });
 
       // Check if login was successful by trying to get session
