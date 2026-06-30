@@ -33,26 +33,20 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      // Use signIn from next-auth (handles CSRF automatically)
-      const result = await signIn('credentials', {
+      const result: any = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
-      console.log('[Login] Result:', result);
-
-      if (result?.error) {
+      if (result && result.error) {
         setError('Email atau password salah.');
         setLoading(false);
       } else {
-        // Wait a bit for session to update
-        await new Promise(resolve => setTimeout(resolve, 500));
-
         // Determine dashboard based on email
         const isAdmin = email.toLowerCase().includes('admin');
         const redirectUrl = isAdmin ? '/dashboard' : '/dashboard/student';
-        console.log('[Login] Redirecting to:', redirectUrl);
+        console.log('[Login] Success, redirecting to:', redirectUrl);
         router.push(redirectUrl);
       }
     } catch (err) {
@@ -99,11 +93,11 @@ function LoginForm() {
               </label>
               <input
                 type="email"
-                name="email"
-                id="email"
+                name="user-email"
+                id="user-email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                autoComplete="off"
                 required
                 placeholder="email@contoh.com"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -117,11 +111,11 @@ function LoginForm() {
               </label>
               <input
                 type="password"
-                name="password"
-                id="password"
+                name="user-password"
+                id="user-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
                 placeholder="••••••••"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -14,7 +14,7 @@ export async function GET() {
 
     // Get current user info from database
     const user = await db.query.users.findFirst({
-      where: eq(users.id, parseInt((session.user as any).id)),
+      where: eq(users.id, parseInt(session.user.id as string)),
     });
 
     if (!user) {
