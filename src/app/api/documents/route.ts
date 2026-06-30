@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       where: eq(registrations.id, parseInt(registrationId)),
     });
 
-    if (!registration || registration.user_id !== parseInt(session.user.id as string)) {
+    if (!registration || registration.user_id !== parseInt((session.user as any).id)) {
       return NextResponse.json(
         { error: 'Registration not found' },
         { status: 404 }
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (registration.user_id !== parseInt(session.user.id as string)) {
+    if (registration.user_id !== parseInt((session.user as any).id)) {
       return NextResponse.json(
         { error: 'Unauthorized access to this registration' },
         { status: 403 }
@@ -183,7 +183,7 @@ export async function DELETE(request: Request) {
       },
     });
 
-    if (!doc || doc.registration.user_id !== parseInt(session.user.id as string)) {
+    if (!doc || doc.registration.user_id !== parseInt((session.user as any).id)) {
       return NextResponse.json(
         { error: 'Document not found' },
         { status: 404 }

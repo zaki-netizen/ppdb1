@@ -17,14 +17,14 @@ export async function GET(request: Request) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     const userNotifications = await db.query.notifications.findMany({
-      where: eq(notifications.user_id, parseInt(session.user.id as string)),
+      where: eq(notifications.user_id, parseInt((session.user as any).id)),
       orderBy: desc(notifications.sent_at),
       limit,
       offset,
     });
 
     const total = await db.query.notifications.findMany({
-      where: eq(notifications.user_id, parseInt(session.user.id as string)),
+      where: eq(notifications.user_id, parseInt((session.user as any).id)),
     });
 
     return NextResponse.json({
@@ -65,7 +65,7 @@ export async function PATCH(request: Request) {
       where: eq(notifications.id, parseInt(notificationId)),
     });
 
-    if (!notification || notification.user_id !== parseInt(session.user.id as string)) {
+    if (!notification || notification.user_id !== parseInt((session.user as any).id)) {
       return NextResponse.json(
         { error: 'Notification not found' },
         { status: 404 }
