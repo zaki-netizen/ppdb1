@@ -41,7 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return null;
           }
 
-          console.log('[AUTH] Success:', user.email);
+          console.log('[AUTH] Success:', user.email, 'role:', user.role);
           return {
             id: String(user.id),
             email: user.email,
@@ -60,38 +60,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async jwt({ token, user }) {
-      console.log('[JWT] user:', user?.email);
+      console.log('[JWT] token:', token);
       if (user) {
         token.id = String(user.id);
         token.email = user.email;
         token.name = user.name;
-        (token as any).role = (user as any).role;
+        token.role = (user as any).role;
+        console.log('[JWT] Set role:', token.role);
       }
       return token;
     },
     async session({ session, token }) {
-      console.log('[SESSION] token.email:', token.email);
+      console.log('[SESSION] token:', JSON.stringify(token));
       if (session.user) {
         (session.user as any).id = token.id as string;
-        (session.user as any).role = (token as any).role;
+        (session.user as any).role = token.role;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
-        console.log('[SESSION] Done, email:', session.user.email);
+        console.log('[SESSION] Done, role:', token.role);
       }
       return session;
     },
   },
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
-  cookies: {
-    sessionToken: {
-      name: `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    },
-  },
 });
