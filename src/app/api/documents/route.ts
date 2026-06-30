@@ -3,8 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { documents, registrations } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { saveFile, deleteFile } from '@/lib/storage';
 
 export async function GET(request: Request) {
   try {
@@ -65,24 +64,16 @@ export async function POST(request: Request) {
 
     if (!file || !registrationId || !documentType) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: file, registrationId, documentType' },
         { status: 400 }
       );
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'File size exceeds 5MB limit' },
-        { status: 413 }
-      );
-    }
-
     // Validate document type
-    const validTypes = ['KK', 'Akta', 'Sertifikat', 'Raport'];
+    const validTypes = ['KK', 'Akta', 'Sertifikat', 'Raport', 'Ijazah', 'Foto'];
     if (!validTypes.includes(documentType)) {
       return NextResponse.json(
-        { error: 'Invalid document type' },
+        { error: `Invalid document type. Allowed: ${validTypes.join(', ')}` },
         { status: 400 }
       );
     }
@@ -92,31 +83,50 @@ export async function POST(request: Request) {
       where: eq(registrations.id, parseInt(registrationId)),
     });
 
-    if (!registration || registration.user_id !== parseInt(session.user.id as string)) {
+    if (!registration) {
       return NextResponse.json(
         { error: 'Registration not found' },
         { status: 404 }
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (e) {
-      console.error('Error creating uploads directory:', e);
+    if (registration.user_id !== parseInt(session.user.id as string)) {
+      return NextResponse.json(
+        { error: 'Unauthorized access to this registration' },
+        { status: 403 }
+      );
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(7);
-    const filename = `${registrationId}-${documentType}-${timestamp}-${randomStr}.pdf`;
-    const filepath = join(uploadsDir, filename);
+    // Check if registration is accepted
+    if (registration.selection_status !== 'accepted') {
+      return NextResponse.json(
+        { error: 'Registration must be accepted before uploading documents' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already has this document type uploaded
+    const existingDocs = await db.query.documents.findMany({
+      where: eq(documents.registration_id, parseInt(registrationId)),
+    });
+
+    const existingDoc = existingDocs.find(d => d.document_type === documentType);
+    if (existingDoc) {
+      // Delete old file
+      await deleteFile(existingDoc.file_path);
+      // Delete old record
+      await db.delete(documents).where(eq(documents.id, existingDoc.id));
+    }
 
     // Save file
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
+    const saveResult = await saveFile(file, parseInt(registrationId), documentType);
+
+    if (!saveResult.success || !saveResult.url) {
+      return NextResponse.json(
+        { error: saveResult.error || 'Failed to save file' },
+        { status: 500 }
+      );
+    }
 
     // Store document record in database
     const result = await db
@@ -124,8 +134,8 @@ export async function POST(request: Request) {
       .values({
         registration_id: parseInt(registrationId),
         document_type: documentType,
-        file_path: `/uploads/${filename}`,
-        file_size: file.size,
+        file_path: saveResult.url,
+        file_size: saveResult.size || file.size,
         mime_type: file.type,
         verification_status: 'pending',
       })
@@ -180,19 +190,24 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Delete file
-    try {
-      const filepath = join(process.cwd(), 'public', doc.file_path);
-      // Note: In production, use fs.unlink() or delete from S3
-      console.log('File deletion would occur at:', filepath);
-    } catch (e) {
-      console.error('Error deleting file:', e);
+    // Check if daftar ulang already completed
+    if (doc.registration.daftar_ulang_completed) {
+      return NextResponse.json(
+        { error: 'Cannot delete document after daftar ulang is completed' },
+        { status: 400 }
+      );
     }
+
+    // Delete file from storage
+    await deleteFile(doc.file_path);
 
     // Delete database record
     await db.delete(documents).where(eq(documents.id, parseInt(documentId)));
 
-    return NextResponse.json({ message: 'Document deleted successfully' });
+    return NextResponse.json({
+      message: 'Document deleted successfully',
+      documentId: parseInt(documentId)
+    });
   } catch (error) {
     console.error('Error deleting document:', error);
     return NextResponse.json(

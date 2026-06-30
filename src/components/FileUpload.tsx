@@ -17,7 +17,7 @@ export interface UploadedFile {
 
 interface FileUploadProps {
   registrationId: string;
-  documentType: 'KK' | 'Akta' | 'Sertifikat' | 'Raport';
+  documentType: 'KK' | 'Akta' | 'Sertifikat' | 'Raport' | 'Ijazah' | 'Foto';
   onUploadComplete?: (file: UploadedFile) => void;
   onUploadError?: (error: string) => void;
   className?: string;

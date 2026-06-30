@@ -17,7 +17,10 @@
     "seed": "ts-node scripts/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1076.0",
+    "@aws-sdk/s3-request-presigner": "^3.1076.0",
     "@hookform/resolvers": "^3.3.4",
+    "@neondatabase/serverless": "^1.1.0",
     "@t3-oss/env-nextjs": "^0.7.1",
     "@tanstack/react-query": "^5.28.0",
     "axios": "^1.6.8",
