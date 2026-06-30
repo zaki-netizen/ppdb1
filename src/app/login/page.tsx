@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Suspense } from 'react';
-import { useSession } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
@@ -33,41 +33,31 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      // Use direct fetch to bypass CSRF issues
-      const csrfRes = await fetch('/api/auth/csrf');
-      const csrfData = await csrfRes.json();
-
-      await fetch('/api/auth/callback/credentials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          email,
-          password,
-          csrfToken: csrfData.csrfToken,
-          callbackUrl: `${window.location.origin}/dashboard/student`,
-          json: 'true',
-        }),
-        credentials: 'include',
+      // Use signIn from next-auth (handles CSRF automatically)
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
       });
 
-      // Check if login was successful by trying to get session
-      const sessionRes = await fetch('/api/auth/session');
-      const sessionData = await sessionRes.json();
+      console.log('[Login] Result:', result);
 
-      if (sessionData?.user) {
+      if (result?.error) {
+        setError('Email atau password salah.');
+        setLoading(false);
+      } else {
+        // Wait a bit for session to update
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Determine dashboard based on email
         const isAdmin = email.toLowerCase().includes('admin');
         const redirectUrl = isAdmin ? '/dashboard' : '/dashboard/student';
-        console.log('[Login] Success, user:', sessionData.user.email);
+        console.log('[Login] Redirecting to:', redirectUrl);
         router.push(redirectUrl);
-      } else {
-        setError('Email atau password salah.');
       }
     } catch (err) {
       console.error('Login error:', err);
       setError('Terjadi kesalahan. Silakan coba lagi.');
-    } finally {
       setLoading(false);
     }
   };
@@ -109,11 +99,11 @@ function LoginForm() {
               </label>
               <input
                 type="email"
-                name="user-email"
-                id="user-email"
+                name="email"
+                id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="off"
+                autoComplete="email"
                 required
                 placeholder="email@contoh.com"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -127,11 +117,11 @@ function LoginForm() {
               </label>
               <input
                 type="password"
-                name="user-password"
-                id="user-password"
+                name="password"
+                id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
+                autoComplete="current-password"
                 required
                 placeholder="••••••••"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
