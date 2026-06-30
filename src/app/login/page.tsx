@@ -2,13 +2,12 @@
 
 import { useState, Suspense } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { useEffect } from 'react';
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
@@ -19,10 +18,10 @@ function LoginForm() {
   // Redirect if already logged in
   useEffect(() => {
     if (status === 'authenticated' && session?.user) {
-      const isAdmin = session.user.email?.toLowerCase().includes('admin') || (session.user as any).role === 'admin';
-      router.push(isAdmin ? '/dashboard' : '/dashboard/student');
+      const isAdmin = (session.user as any)?.role === 'admin' || session.user.email?.toLowerCase().includes('admin');
+      window.location.href = isAdmin ? '/dashboard' : '/dashboard/student';
     }
-  }, [status, session, router]);
+  }, [status, session]);
 
   // Check if user just registered
   const justRegistered = searchParams.get('registered') === 'true';
@@ -33,21 +32,19 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const result: any = await signIn('credentials', {
+      const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
-      if (result && result.error) {
+      if (result?.error) {
         setError('Email atau password salah.');
         setLoading(false);
       } else {
-        // Determine dashboard based on email
+        // Full page redirect
         const isAdmin = email.toLowerCase().includes('admin');
-        const redirectUrl = isAdmin ? '/dashboard' : '/dashboard/student';
-        console.log('[Login] Success, redirecting to:', redirectUrl);
-        router.push(redirectUrl);
+        window.location.href = isAdmin ? '/dashboard' : '/dashboard/student';
       }
     } catch (err) {
       console.error('Login error:', err);
